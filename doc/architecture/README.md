@@ -41,7 +41,7 @@ lifecycle state of archi); this folder is a copy for reading.
 | Check | Result |
 |-------|--------|
 | `archi check` (model, requirements, decisions) | no findings / замечаний нет |
-| `archi link verify` (model ↔ code) | 21 of 21 links clean / 21 из 21 связей чистые |
+| `archi link verify` (model ↔ code) | 35 of 35 links clean / 35 из 35 связей чистые |
 | `archi link audit` (code changes without an architectural account) | none in the code / в коде нет |
 | NKP coupling | N=9, E=11, K̄=1.22, regime CRITICAL (the target regime of archi) |
 
@@ -77,4 +77,18 @@ Hypervisor.Kernel ← hv//src/kernel/sched/sched_rr.rs#SchedulerRR::sleep
 Hypervisor.Kernel ← hv//src/kernel/sched/sched_rr.rs#SchedulerRR::wakeup
 Hypervisor.Kernel ← hv//src/kernel/sched/sched_rr.rs#SchedulerRR::yield_to
 Hypervisor ← hv//src/lib.rs#init
+Hypervisor.DeviceEmu ← hv//src/kernel/async_task.rs#async_task_exe
+Hypervisor.DeviceEmu ← hv//src/kernel/async_task.rs#async_ipi_req
+Hypervisor.DeviceEmu ← hv//src/kernel/async_task.rs#finish_async_task
+Hypervisor.DeviceEmu ← hv//src/kernel/async_task.rs#complete_async_task
+Hypervisor.DeviceEmu ← hv//src/device/virtio/blk.rs#generate_blk_req
+Hypervisor.DeviceEmu ← hv//src/device/virtio/blk.rs#virtio_mediated_blk_notify_handler
+Hypervisor.Vgic ← hv//src/arch/aarch64/vgic.rs#gic_maintenance_handler
+Hypervisor.Kernel ← hv//src/kernel/hvc.rs#hvc_vmm_handler
+Hypervisor.Kernel ← hv//src/kernel/hvc.rs#hvc_sys_handler
+Hypervisor.Kernel ← hv//src/kernel/hvc.rs#hvc_send_msg_to_vm
+Hypervisor.Kernel ← hv//src/kernel/hvc.rs#hvc_ipi_handler
+Mvm.Cli ← hv//cli/src/main.rs
+Mvm.Cli ← hv//cli/src/vmm.rs
+Mvm ← hv//tools/mkrootfs.sh
 ```
