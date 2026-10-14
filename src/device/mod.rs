@@ -15,6 +15,8 @@ pub use self::device::*;
 pub use self::device_tree::*;
 pub use self::emu::*;
 pub use self::virtio::*;
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+pub use self::pl111::*;
 #[cfg(feature = "memrsv")]
 pub use self::memrsv::*;
 
@@ -24,4 +26,6 @@ mod emu;
 #[cfg(feature = "memrsv")]
 mod memrsv;
 pub mod meta;
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+mod pl111;
 mod virtio;

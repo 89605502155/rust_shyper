@@ -68,6 +68,16 @@ pub fn mvm_config_init() {
             emu_type: EmuDeviceType::EmuDeviceTVirtioConsole,
             mediated: false,
         },
+        // Display: shown in the QEMU window through ramfb (see device/pl111.rs).
+        VmEmulatedDeviceConfig {
+            name: String::from("clcd@b000000"),
+            base_ipa: 0xb000000,
+            length: 0x1000,
+            irq_id: 0,
+            cfg_list: Vec::new(),
+            emu_type: EmuDeviceType::EmuDeviceTPl111,
+            mediated: false,
+        },
         VmEmulatedDeviceConfig {
             name: String::from("shyper"),
             base_ipa: 0,
@@ -89,8 +99,15 @@ pub fn mvm_config_init() {
         PassthroughRegion { ipa: 0x8080000, pa: 0x8080000, length: 0x20000, dev_property: true }, //pass-through gicv3-its
         // pass-througn virtio blk/net
         PassthroughRegion { ipa: 0x0a003000, pa: 0x0a003000, length: 0x1000, dev_property: true },
+        // PCIe host bridge with QEMU's highmem-ecam=off,highmem-mmio=off:
+        // MMIO window, I/O window and ECAM (USB keyboard and tablet for the
+        // display, see device_tree.rs)
+        PassthroughRegion { ipa: 0x10000000, pa: 0x10000000, length: 0x2eff0000, dev_property: true },
+        PassthroughRegion { ipa: 0x3eff0000, pa: 0x3eff0000, length: 0x10000, dev_property: true },
+        PassthroughRegion { ipa: 0x3f000000, pa: 0x3f000000, length: 0x1000000, dev_property: true },
     ],
-    irqs: vec![33,27, 72, 73,74,75,76,77,78,79],
+    // PCIe INTA-INTD are SPI 3-6 (35-38)
+    irqs: vec![33,27, 35, 36, 37, 38, 72, 73,74,75,76,77,78,79],
     streams_ids: vec![]
     };
 
@@ -107,7 +124,12 @@ pub fn mvm_config_init() {
         id: 0,
         name: String::from("supervisor"),
         os_type: VmType::VmTOs,
-        cmdline: String::from("earlycon console=ttyAMA0 root=/dev/vda rw audit=0 default_hugepagesz=32M hugepagesz=32M hugepages=4\0"),
+        // eth1 is the QEMU user network card passed through to the MVM: the
+        // kernel configures it for QEMU's user network (gateway and DNS).
+        cmdline: String::from(
+            "earlycon console=ttyAMA0 root=/dev/vda rw audit=0 default_hugepagesz=32M hugepagesz=32M hugepages=4 \
+             ip=10.0.2.15::10.0.2.2:255.255.255.0:shyper-mvm:eth1:off:10.0.2.3\0",
+        ),
         image: VmImageConfig {
             kernel_img_name: Some("Image"),
             kernel_load_ipa: 0x80080000,

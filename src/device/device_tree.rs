@@ -181,7 +181,7 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003e00".as_ptr()), 0);
         assert_eq!(fdt_remove_node(dtb, c"/gpio-keys".as_ptr()), 0);
         assert_eq!(fdt_remove_node(dtb, c"/pl061@9030000".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, c"/pcie@10000000".as_ptr()), 0);
+        fdt_keep_low_pcie(dtb);
         assert_eq!(fdt_remove_node(dtb, c"/pl031@9010000".as_ptr()), 0);
         // pass through the only one uart on qemu-system-aarch64
         // assert_eq!(fdt_remove_node(dtb, c"/pl011@9000000".as_ptr()), 0);
@@ -190,6 +190,7 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         #[cfg(not(feature = "gicv3"))]
         assert_eq!(fdt_remove_node(dtb, c"/intc@8000000/v2m@8020000".as_ptr()), 0);
         //assert_eq!(fdt_remove_node(dtb, c"/flash@0".as_ptr()), 0);
+        fdt_add_qemu_display(dtb).expect("failed to add the display to the MVM device tree");
 
         let len = fdt_size(dtb) as usize;
         info!("fdt patched size {}", len);
@@ -805,4 +806,76 @@ fn create_shyper_node(fdt: &mut FdtWriter, name: &str, irq: usize, address: usiz
     fdt.end_node(shyper)?;
 
     Ok(())
+}
+
+/// Adds the emulated PL111 display (see device/pl111.rs) of the QEMU board and
+/// its 1024x768 panel to the MVM device tree, in the form the Linux
+/// `amba-clcd` driver reads.
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+unsafe fn fdt_add_qemu_display(dtb: *mut fdt::myctypes::c_void) -> fdt::raw::FdtResult<()> {
+    use fdt::raw::*;
+    let header = core::slice::from_raw_parts(dtb as *const u8, 8);
+    let b = core::slice::from_raw_parts_mut(dtb as *mut u8, totalsize(header));
+    let be32s = |v: &[u32]| v.iter().flat_map(|x| x.to_be_bytes()).collect::<Vec<u8>>();
+
+    let clk = get_phandle(b, path_offset(b, b"/apb-pclk")?);
+    let clcd_ep_ph = find_max_phandle(b)? + 1;
+    let panel_ep_ph = clcd_ep_ph + 1;
+
+    let clcd = add_subnode(b, 0, b"clcd@b000000")?;
+    setprop(b, clcd, b"compatible", b"arm,pl111\0arm,primecell\0")?;
+    setprop(b, clcd, b"reg", &be32s(&[0, 0xb000000, 0, 0x1000]))?;
+    setprop(b, clcd, b"clocks", &be32s(&[clk, clk]))?;
+    setprop(b, clcd, b"clock-names", b"clcdclk\0apb_pclk\0")?;
+    let port = add_subnode(b, clcd, b"port")?;
+    let ep = add_subnode(b, port, b"endpoint")?;
+    setprop_u32(b, ep, b"phandle", clcd_ep_ph)?;
+    setprop_u32(b, ep, b"remote-endpoint", panel_ep_ph)?;
+    // 24 bpp: red, green and blue on pads 0, 8 and 16.
+    setprop(b, ep, b"arm,pl11x,tft-r0g0b0-pads", &be32s(&[0, 8, 16]))?;
+
+    let panel = add_subnode(b, 0, b"panel")?;
+    setprop_string(b, panel, b"compatible", b"panel-dpi")?;
+    let timing = add_subnode(b, panel, b"panel-timing")?;
+    for (name, val) in [
+        (&b"clock-frequency"[..], 65_000_000),
+        (b"hactive", 1024),
+        (b"vactive", 768),
+        (b"hfront-porch", 24),
+        (b"hback-porch", 160),
+        (b"hsync-len", 136),
+        (b"vfront-porch", 3),
+        (b"vback-porch", 29),
+        (b"vsync-len", 6),
+    ] {
+        setprop_u32(b, timing, name, val)?;
+    }
+    let port = add_subnode(b, panel, b"port")?;
+    let ep = add_subnode(b, port, b"endpoint")?;
+    setprop_u32(b, ep, b"phandle", panel_ep_ph)?;
+    setprop_u32(b, ep, b"remote-endpoint", clcd_ep_ph)?;
+    Ok(())
+}
+
+/// Passes the PCIe host bridge of QEMU to the MVM when its ECAM is in the low
+/// region that the MVM maps (QEMU option `highmem-ecam=off`), otherwise
+/// removes it. MSIs are not available (the GICv2m frame is not passed), so the
+/// MVM uses the legacy INTx interrupts.
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+unsafe fn fdt_keep_low_pcie(dtb: *mut fdt::myctypes::c_void) {
+    use fdt::raw::*;
+    const LOW_ECAM: u64 = 0x3f00_0000;
+    let header = core::slice::from_raw_parts(dtb as *const u8, 8);
+    let b = core::slice::from_raw_parts_mut(dtb as *mut u8, totalsize(header));
+    let Ok(pcie) = path_offset(b, b"/pcie@10000000") else {
+        return;
+    };
+    let low_ecam = getprop(b, pcie, b"reg")
+        .is_ok_and(|reg| reg.len() >= 8 && u64::from_be_bytes(reg[..8].try_into().unwrap()) == LOW_ECAM);
+    if low_ecam {
+        let _ = delprop(b, pcie, b"msi-parent");
+        info!("pass the PCIe host bridge to the MVM");
+    } else {
+        let _ = del_node(b, pcie);
+    }
 }

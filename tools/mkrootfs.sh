@@ -119,6 +119,8 @@ $SUDO chmod 0755 "$R/start-gvm.sh"
     common_init shyper-mvm mvm
     cat <<'EOF'
 /root/shyper system insmod /root/shyper.ko
+# The kernel configured the network (ip= on the command line); use its DNS.
+[ -s /proc/net/pnp ] && ln -sf /proc/net/pnp /etc/resolv.conf
 while true; do
     setsid -c /bin/bash -i </dev/console >/dev/console 2>&1
 done

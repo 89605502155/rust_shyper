@@ -272,6 +272,8 @@ impl VmInnerConst {
                 }
                 EmuDeviceTIOMMU => emu_iommu_init(emu_cfg),
                 EmuDeviceTShyper => shyper_init(vm.clone(), emu_cfg.base_ipa, emu_cfg.length),
+                #[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+                EmuDeviceTPl111 => crate::device::emu_pl111_init(emu_cfg),
                 _ => {
                     panic!("init_device: unknown emu dev type {:?}", emu_cfg.emu_type);
                 }

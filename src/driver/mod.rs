@@ -15,6 +15,10 @@ pub use uart::putc;
 
 #[cfg(feature = "pi4")]
 pub use self::gpio::*;
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+pub use self::fw_cfg::*;
 
+#[cfg(all(feature = "qemu", target_arch = "aarch64"))]
+mod fw_cfg;
 mod gpio;
 mod uart;
