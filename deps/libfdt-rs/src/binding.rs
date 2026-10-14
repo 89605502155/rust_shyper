@@ -1,15 +1,18 @@
-use crate::ffi::*;
+use crate::raw;
 use crate::*;
 
 use alloc::borrow::{Borrow, BorrowMut, ToOwned};
+use alloc::vec;
 use alloc::vec::Vec;
 use core::ffi::CStr;
 use core::ops::{Deref, DerefMut};
 
+/// A device tree blob in memory; its size is the header's `totalsize`.
 #[derive(Debug)]
 #[repr(transparent)]
 pub struct Fdt;
 
+/// An owned device tree blob.
 #[derive(Debug, Clone)]
 pub struct FdtBuf {
     inner: Vec<u8>,
@@ -17,16 +20,15 @@ pub struct FdtBuf {
 
 const FDT_V1_SIZE: usize = 7 * 4;
 
+fn wrap(r: raw::FdtResult<()>) -> Result<()> {
+    r.map_err(Error::Raw)
+}
+
 fn validate_bytes(data: &[u8]) -> Result<&[u8]> {
-    if data.len() < FDT_V1_SIZE {
+    if data.len() < FDT_V1_SIZE || raw::totalsize(data) > data.len() {
         return Err(Error::Invalid);
     }
-    let len: usize = unsafe { crate::fdt_size(data.as_ptr() as *mut c_void) }.try_into()?;
-    if len <= data.len() {
-        Ok(data)
-    } else {
-        Err(Error::Invalid)
-    }
+    Ok(data)
 }
 
 impl Fdt {
@@ -40,18 +42,26 @@ impl Fdt {
         Ok(unsafe { Self::from_bytes_mut_unchecked(data) })
     }
 
+    /// # Safety
+    /// `data` must hold a device tree of at least `totalsize` bytes.
     pub unsafe fn from_bytes_unchecked(data: &[u8]) -> &Self {
-        &*(data as *const [u8] as *const Self)
+        &*(data.as_ptr() as *const Self)
     }
 
+    /// # Safety
+    /// `data` must hold a device tree of at least `totalsize` bytes.
     pub unsafe fn from_bytes_mut_unchecked(data: &mut [u8]) -> &mut Self {
-        &mut *(data as *mut [u8] as *mut Self)
+        &mut *(data.as_mut_ptr() as *mut Self)
     }
 
+    /// # Safety
+    /// `data` must point to a device tree of `totalsize` readable bytes.
     pub unsafe fn from_ptr<'a>(data: *const u8) -> &'a Self {
         &*(data as *const Self)
     }
 
+    /// # Safety
+    /// `data` must point to a device tree of `totalsize` writable bytes.
     pub unsafe fn from_mut_ptr<'a>(data: *mut u8) -> &'a mut Self {
         &mut *(data as *mut Self)
     }
@@ -72,32 +82,28 @@ impl Fdt {
         self as *mut Self as *mut u8
     }
 
-    fn as_raw_ptr(&self) -> *const c_void {
-        self as *const Self as *const c_void
-    }
-
-    fn as_raw_mut_ptr(&mut self) -> *mut c_void {
-        self as *mut Self as *mut c_void
-    }
-
     pub fn len(&self) -> usize {
-        (unsafe { crate::fdt_size(self.as_raw_ptr() as *mut c_void) }) as usize
+        // SAFETY: a `Fdt` always points to at least a device tree header.
+        let header = unsafe { core::slice::from_raw_parts(self.as_ptr(), 8) };
+        raw::totalsize(header)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 
     pub fn pack(&mut self) -> Result<()> {
-        wrap_unit(unsafe { crate::fdt_pack(self.as_raw_mut_ptr()) })
+        wrap(raw::pack(self.as_bytes_mut()))
     }
 
     pub fn overlay_apply(&mut self, overlay: &mut Fdt) -> Result<()> {
-        wrap_unit(unsafe {
-            crate::fdt_overlay_apply(self.as_raw_mut_ptr(), overlay.as_raw_mut_ptr())
-        })
+        wrap(overlay::overlay_apply(self.as_bytes_mut(), overlay.as_bytes_mut()))
     }
 
     pub fn remove_node(&mut self, path: &CStr) -> Result<()> {
-        wrap_unit(unsafe {
-            crate::fdt_remove_node(self.as_raw_mut_ptr(), path.as_ptr() as *const c_char)
-        })
+        let b = self.as_bytes_mut();
+        let node = raw::path_offset(b, path.to_bytes()).map_err(Error::Raw)?;
+        wrap(raw::del_node(b, node))
     }
 }
 
@@ -142,15 +148,10 @@ impl FdtBuf {
         }
     }
 
+    /// Copies `fdt` into a new buffer of `cap` bytes, ready to be edited.
     pub fn from_fdt_capacity(fdt: &Fdt, cap: usize) -> Result<Self> {
-        let mut buf = Vec::with_capacity(cap);
-        wrap_unit(unsafe {
-            crate::fdt_open_into(
-                fdt.as_raw_ptr(),
-                buf.as_mut_ptr() as *mut c_void,
-                cap.try_into()?,
-            )
-        })?;
+        let mut buf = vec![0u8; cap];
+        wrap(raw::open_into(fdt.as_bytes(), &mut buf))?;
         Ok(Self { inner: buf })
     }
 
@@ -161,7 +162,10 @@ impl FdtBuf {
         Ok(())
     }
 
-    pub fn into_inner(self) -> Vec<u8> {
+    /// The buffer, truncated to the blob's `totalsize`.
+    pub fn into_inner(mut self) -> Vec<u8> {
+        let len = self.len();
+        self.inner.truncate(len);
         self.inner
     }
 }

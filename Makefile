@@ -13,13 +13,11 @@ FEATURES ?=
 ifeq ($(ARCH), aarch64)
 	CROSS_COMPILE := aarch64-none-elf-
 	RUST_TARGET := aarch64-unknown-none-softfloat
-	CLANG_TARGET := aarch64-unknown-none
 	TEXT_START := 0x40080000
 	VM0_IMAGE_PATH := "./image/Image_vanilla"
 else ifeq ($(ARCH), riscv64)
 	CROSS_COMPILE := riscv64-linux-gnu-
 	RUST_TARGET := riscv64imac-unknown-none-elf
-	CLANG_TARGET := riscv64-unknown-none-elf
 	TEXT_START := 0x80200000
 	VM0_IMAGE_PATH := "./image/Image-6.10-rc1"
 else
@@ -103,14 +101,7 @@ else ifeq ($(ARCH), riscv64)
 		  -ffreestanding
 endif
 
-# Make bindgen (used by the fdt crate) parse headers with the cross toolchain's
-# libc instead of the host glibc headers in /usr/include. clang does not
-# understand rust-only triples like aarch64-unknown-none-softfloat, so the
-# target is overridden as well.
-CROSS_LIBC_INCLUDE := $(abspath $(dir $(shell $(CROSS_COMPILE)gcc -print-file-name=libc.a))../include)
-BINDGEN_EXTRA_CLANG_ARGS ?= --target=$(CLANG_TARGET) -isystem $(CROSS_LIBC_INCLUDE)
-
-export BOARD CROSS_COMPILE CFLAGS BINDGEN_EXTRA_CLANG_ARGS AIA_GUESTS = $(AIA_GUESTS)
+export BOARD CROSS_COMPILE CFLAGS AIA_GUESTS = $(AIA_GUESTS)
 
 CARGO_ACTION ?= build
 

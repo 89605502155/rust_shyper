@@ -8,11 +8,11 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-#![no_std]
-#![allow(non_upper_case_globals)]
-#![allow(non_camel_case_types)]
-#![allow(non_snake_case)]
+#![cfg_attr(not(test), no_std)]
+#![allow(clippy::missing_safety_doc)]
 
+/// C-like integer types kept for the device tree helpers' interface.
+#[allow(non_camel_case_types)]
 pub mod myctypes {
     pub type c_void = core::ffi::c_void;
 
@@ -37,8 +37,9 @@ extern crate alloc;
 
 pub mod binding;
 pub mod error;
-pub mod ffi;
+pub mod overlay;
+pub mod raw;
+mod wrapper;
 
 pub use error::*;
-
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+pub use wrapper::*;
