@@ -43,18 +43,6 @@ pub fn timer_init() {
     }
 }
 
-/// Feature `hang-debug`: keep the hypervisor timer running on this core even
-/// with a single vCPU, so that the interrupt state is dumped periodically.
-#[cfg(all(
-    feature = "hang-debug",
-    target_arch = "aarch64",
-    not(feature = "gicv3")
-))]
-pub fn timer_start_debug() {
-    timer_enable(true);
-    timer_notify_after(TIMER_INTERVAL);
-}
-
 /// enable timer on current cpu
 pub fn timer_enable(val: bool) {
     // println!(
@@ -82,12 +70,6 @@ pub fn timer_irq_handler() {
     use crate::arch::timer_arch_disable_irq;
 
     timer_arch_disable_irq();
-    #[cfg(all(
-        feature = "hang-debug",
-        target_arch = "aarch64",
-        not(feature = "gicv3")
-    ))]
-    crate::arch::hang_debug::tick();
     current_cpu().scheduler().do_schedule();
 
     #[cfg(target_arch = "riscv64")]

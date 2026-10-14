@@ -410,7 +410,20 @@ cargo test --manifest-path deps/libfdt-rs/Cargo.toml --target x86_64-unknown-lin
 | `vm config` fails with `failed to copy kernel image` | `kernel_filename` is wrong, or there are no free huge pages (the MVM command line reserves 4 × 32 MiB). |
 | Docker permission denied in `mkrootfs.sh` | your user is not in the `docker` group. Run the script with sudo rights or add the user to the group. |
 | Very slow boot | QEMU emulates the CPUs (TCG). Close other heavy programs. |
-| Rarely (about one boot in 15–20) the MVM stops after `NET: Registered protocol family 1` | A timer interrupt of the MVM is lost; the bug comes from Rust-Shyper. Restart QEMU. It is being investigated. |
+
+### Note: guest interrupts under QEMU
+
+QEMU's GICv2 model (checked up to 10.2) has a bug. When a guest deactivates
+a hardware-linked interrupt through its virtual CPU interface, QEMU does not
+re-evaluate the physical CPU interface. A guest timer interrupt that is
+already pending again at that moment stays unsignalled until some other GIC
+event happens. In Rust-Shyper this made about one MVM boot in 8 stop forever
+after `NET: Registered protocol family 1`.
+
+trosna-shyper works around it on the `qemu` board only: the hypervisor timer
+also ticks on cores with a single vCPU (every 10 ms), and every tick makes
+QEMU re-evaluate. On real boards the timer stays off for a single vCPU, as
+before. Measured: 0 hangs in 90 boots with the workaround, about 12% without.
 
 ## 15. Differences from Rust-Shyper
 
@@ -439,7 +452,9 @@ Compared with upstream commit `62a2053`:
   - undefined behavior in the CLI: dangling pointer, unterminated strings,
     write to an immutable value;
   - a null reference at the hypervisor entry;
-  - libfdt left uninitialized data in buffers.
+  - libfdt left uninitialized data in buffers;
+  - the MVM randomly stopped during boot under QEMU (a lost guest timer
+    interrupt, see section 14).
 - **New:**
   - `vm shutdown`, `vm delconfig`, `vm console` and `system insmod` in the CLI;
   - an MVM disk with a ready guest (`tools/mkrootfs.sh`);

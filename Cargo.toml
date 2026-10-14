@@ -99,5 +99,3 @@ plic = []
 aia = []
 # SiFive HiFive Unmatched (U740) PLIC layout, riscv64
 board_u740 = []
-# periodic dump of the GICv2 interrupt state of core 0 (debugging aid)
-hang-debug = []

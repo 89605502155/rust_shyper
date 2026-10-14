@@ -19,6 +19,24 @@ pub struct SchedulerRR {
     base_slice: usize,
 }
 
+/// Whether the hypervisor timer must tick on a core that runs `vcpus` vCPUs.
+///
+/// Time slicing needs it only with more than one vCPU. On QEMU it is also kept
+/// for a single vCPU: QEMU's GICv2 model (checked up to 10.2) does not
+/// re-evaluate the physical CPU interface when a guest deactivates a
+/// hardware-linked interrupt through its virtual CPU interface. A guest timer
+/// interrupt that is already pending again at that moment is then never
+/// signalled until some other GIC event happens, and an idle guest waits
+/// forever (the MVM randomly stopped at boot). Any interrupt on the core makes
+/// QEMU re-evaluate, so the tick bounds the delay to one timer interval.
+fn needs_tick(vcpus: usize) -> bool {
+    if cfg!(all(feature = "qemu", target_arch = "aarch64")) {
+        vcpus >= 1
+    } else {
+        vcpus > 1
+    }
+}
+
 impl SchedulerRR {
     pub fn new(slice: usize) -> Self {
         Self {
@@ -89,7 +107,7 @@ impl Scheduler for SchedulerRR {
             }
         }
         vcpu.set_state(VcpuState::Sleep);
-        if self.queue.len() <= 1 {
+        if !needs_tick(self.queue.len()) {
             timer_enable(false);
         }
         if need_schedule {
@@ -102,7 +120,7 @@ impl Scheduler for SchedulerRR {
         let queue = &mut self.queue;
         vcpu.set_state(VcpuState::Ready);
         queue.push(vcpu);
-        if queue.len() > 1 {
+        if needs_tick(queue.len()) {
             timer_enable(true);
         }
         if queue.len() == 1 {
@@ -116,7 +134,7 @@ impl Scheduler for SchedulerRR {
         queue.push(vcpu.clone());
         self.active_idx = queue.len() - 1;
         current_cpu().schedule_to(vcpu);
-        if queue.len() > 1 {
+        if needs_tick(queue.len()) {
             timer_enable(true);
         }
     }

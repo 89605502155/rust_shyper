@@ -205,12 +205,6 @@ pub fn init(dtb: *mut fdt::myctypes::c_void) {
         "{} Hypervisor init ok\n\nStart booting Monitor VM ...",
         env!("CARGO_PKG_NAME")
     );
-    #[cfg(all(
-        feature = "hang-debug",
-        target_arch = "aarch64",
-        not(feature = "gicv3")
-    ))]
-    crate::kernel::timer_start_debug();
     vmm_boot_vm(0);
 
     loop {
