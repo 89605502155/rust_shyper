@@ -1,6 +1,6 @@
 [package]
 name = "trosna-shyper-cli"
-version = "0.2.0"
+version = "0.0.1"
 edition = "2021"
 description = "Command line tool to manage trosna-shyper virtual machines from the MVM"
 license = "MulanPSL-2.0"

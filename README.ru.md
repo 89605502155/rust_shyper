@@ -29,9 +29,10 @@ cargo run --release      # собрать и загрузить гипервиз
 Гипервизор запускает управляющую ВМ (MVM). В приглашении `[mvm ~]#`:
 
 ```sh
-/root/start-gvm.sh             # настроить и запустить гостевую ВМ 1
-/root/shyper vm console        # её консоль (Ctrl-] — назад)
+/root/start-gvm.sh             # настроить и запустить гостевую ВМ 1, подключиться к её консоли
+                               # (Enter — приглашение гостя, Ctrl-] — назад в MVM)
 /root/shyper vm list
+/root/shyper vm console        # снова подключиться к консоли гостя
 ```
 
 Выход из QEMU: `Ctrl-A`, `X`.

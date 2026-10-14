@@ -1,6 +1,6 @@
 [package]
 name = "trosna-shyper"
-version = "0.2.0"
+version = "0.0.1"
 authors = [
     "Andrey Ferubko",
     # Rust-Shyper, which trosna-shyper is based on:

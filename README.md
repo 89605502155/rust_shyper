@@ -29,9 +29,10 @@ cargo run --release      # build and boot the hypervisor in QEMU
 The hypervisor starts the management VM (MVM). At the `[mvm ~]#` prompt:
 
 ```sh
-/root/start-gvm.sh             # configure and boot guest VM 1
-/root/shyper vm console        # its console (Ctrl-] goes back)
+/root/start-gvm.sh             # configure and boot guest VM 1, attach to its console
+                               # (press Enter for its prompt, Ctrl-] goes back to the MVM)
 /root/shyper vm list
+/root/shyper vm console        # attach to the guest console again
 ```
 
 Leave QEMU with `Ctrl-A`, `X`.

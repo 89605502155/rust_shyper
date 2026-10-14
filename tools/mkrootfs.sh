@@ -9,7 +9,7 @@
 #   gvm/Image           GVM kernel
 #   gvm/gvm.img         GVM root disk, served by the CLI as a mediated disk
 #   gvm/gvm.json        GVM configuration (tools/gvm-qemu.json)
-#   start-gvm.sh        configures and boots the GVM, its console is /dev/hvc0
+#   start-gvm.sh        configures and boots the GVM and attaches to its console
 #
 # Nothing is executed for arm64 on the host: the container image is only
 # exported, and the kernel module is loaded by the Rust CLI instead of kmod.
@@ -102,17 +102,17 @@ sed "s/\"@GVM_SECTORS@\"/$GVM_SECTORS/" "$ROOT_DIR/tools/gvm-qemu.json" | $SUDO 
 $SUDO install -m 0644 "$ROOT_DIR/tools/mediated-qemu.json" "$R/gvm/mediated.json"
 $SUDO tee "$R/start-gvm.sh" >/dev/null <<'EOF'
 #!/bin/bash
-# Configure and boot the guest VM; its console is /dev/hvc0.
+# Configure and boot the guest VM, and attach to its console (/dev/hvc0).
+# Ctrl-] goes back to the MVM; `/root/shyper vm console` attaches again.
 set -e
 cd /root/gvm
 /root/shyper system daemon mediated.json > /root/gvm/daemon.log 2>&1 &
 sleep 3
 /root/shyper vm config gvm.json
-# The MVM side of the GVM console must not echo, or the guest gets its own
-# output back as input.
-stty -F /dev/hvc0 raw -echo
-/root/shyper vm boot 1
-echo "GVM started. Attach to its console with: /root/shyper vm console (Ctrl-] leaves it)"
+# The console is attached before the guest boots: the device is in raw mode
+# before the guest prints anything, so its output is never echoed back to it.
+(sleep 1 && /root/shyper vm boot 1) &
+exec /root/shyper vm console
 EOF
 $SUDO chmod 0755 "$R/start-gvm.sh"
 {

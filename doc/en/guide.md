@@ -152,7 +152,8 @@ The script:
     a shell on `/dev/hvc0`;
   - `gvm/gvm.json` and `gvm/mediated.json` — the guest configuration (from
     `tools/gvm-qemu.json` and `tools/mediated-qemu.json`);
-  - `start-gvm.sh` — configures and boots the guest.
+  - `start-gvm.sh` — configures and boots the guest and attaches to its
+    console.
 
 Variables: `SIZE` (MVM disk size, default `3G`), `GVM_SIZE` (default `768M`),
 `GVM_KERNEL` (default `image/Image_vanilla`), `FEDORA_IMAGE`, `SUDO` (for
@@ -182,7 +183,7 @@ The serial console is in your terminal.
 
 What you see on boot:
 
-1. `Welcome to qemu trosna-shyper 0.2.0!`, the build information and the
+1. `Welcome to qemu trosna-shyper 0.0.1!`, the build information and the
    hypervisor log (`[I]>[core N, ...]`). The memory, the 4 cores, the
    interrupt controller and the timer are initialized.
 2. `Start booting Monitor VM ...`, then the Linux kernel log of the MVM.
@@ -214,11 +215,11 @@ ls -l /dev/shyper          # device of the hypervisor kernel module
 
 ```sh
 /root/start-gvm.sh
-/root/shyper vm console        # guest console, Ctrl-] goes back to the MVM
 ```
 
-In the guest console press Enter. The prompt `[gvm ~]#` belongs to the guest
-VM (hostname `fedora-guest`):
+The script boots guest VM 1 and attaches your terminal to its console: you
+see the guest kernel boot. When it is quiet, press Enter. The prompt
+`[gvm ~]#` belongs to the guest VM (hostname `fedora-guest`):
 
 ```sh
 uname -a        # Linux fedora-guest 4.9.140 ... aarch64
@@ -226,6 +227,8 @@ cat /etc/os-release
 df -h /         # /dev/root: the mediated disk gvm.img
 nproc           # 1: the guest has one physical core of its own
 ```
+
+`Ctrl-]` goes back to the MVM, `/root/shyper vm console` attaches again.
 
 ### Step by step
 
@@ -239,12 +242,16 @@ cd /root/gvm
 # 2. Send the guest configuration and kernel to the hypervisor. The new VM
 #    gets id 1.
 /root/shyper vm config gvm.json
-# 3. Start it on its CPU (core 2 in gvm.json).
-/root/shyper vm boot 1
+# 3. Attach to its console, then start it on its CPU (core 2 in gvm.json).
+(sleep 1 && /root/shyper vm boot 1) &
+exec /root/shyper vm console
 ```
 
 `/root/shyper vm console` connects to the guest console (`/dev/hvc0` in the
-MVM). It switches the device and your terminal to raw mode.
+MVM). It switches the device and your terminal to raw mode. It is attached
+before the guest boots on purpose: output a guest prints while nobody has the
+console open is held by the MVM driver and could be echoed back to the guest
+when the console is opened.
 
 ### Managing guests
 
