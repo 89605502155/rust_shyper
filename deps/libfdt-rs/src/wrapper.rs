@@ -181,7 +181,10 @@ pub unsafe fn fdt_add_timer(fdt: *mut c_void, trigger_lvl: u32) {
     let _ = (|| {
         let node = add_root_node(b, b"timer")?;
         raw::setprop_string(b, node, b"compatible", b"arm,armv8-timer")?;
-        let irqs: Vec<u32> = [0xd, 0xe, 0xb, 0xa].iter().flat_map(|&ppi| [0x1, ppi, trigger_lvl]).collect();
+        let irqs: Vec<u32> = [0xd, 0xe, 0xb, 0xa]
+            .iter()
+            .flat_map(|&ppi| [0x1, ppi, trigger_lvl])
+            .collect();
         raw::setprop(b, node, b"interrupts", &be32s(&irqs))
     })();
 }

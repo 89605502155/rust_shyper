@@ -72,13 +72,8 @@ fn update_local_node_references(fdto: &mut [u8], tree: i32, fixup: i32, delta: u
             return err(FDT_ERR_BADOVERLAY);
         }
         let offsets: Vec<u32> = (0..len / 4).map(|i| be32(fdto, data + 4 * i)).collect();
-        let tree_val = getprop(fdto, tree, &name).map_err(|e| {
-            if e == -FDT_ERR_NOTFOUND {
-                -FDT_ERR_BADOVERLAY
-            } else {
-                e
-            }
-        })?;
+        let tree_val =
+            getprop(fdto, tree, &name).map_err(|e| if e == -FDT_ERR_NOTFOUND { -FDT_ERR_BADOVERLAY } else { e })?;
         let tree_val = tree_val.to_vec();
         for poffset in offsets {
             let poffset = poffset as usize;
@@ -97,13 +92,16 @@ fn update_local_node_references(fdto: &mut [u8], tree: i32, fixup: i32, delta: u
     }
     for fixup_child in subnodes(fdto, fixup) {
         let name = get_name(fdto, fixup_child)?.to_vec();
-        let tree_child = subnode_offset(fdto, tree, &name).map_err(|e| {
-            if e == -FDT_ERR_NOTFOUND {
-                -FDT_ERR_BADOVERLAY
-            } else {
-                e
-            }
-        })?;
+        let tree_child =
+            subnode_offset(fdto, tree, &name).map_err(
+                |e| {
+                    if e == -FDT_ERR_NOTFOUND {
+                        -FDT_ERR_BADOVERLAY
+                    } else {
+                        e
+                    }
+                },
+            )?;
         update_local_node_references(fdto, tree_child, fixup_child, delta)?;
     }
     Ok(())
@@ -134,13 +132,7 @@ fn fixup_one_phandle(
     if phandle == 0 {
         return err(FDT_ERR_NOTFOUND);
     }
-    let fixup = path_offset(fdto, path).map_err(|e| {
-        if e == -FDT_ERR_NOTFOUND {
-            -FDT_ERR_BADOVERLAY
-        } else {
-            e
-        }
-    })?;
+    let fixup = path_offset(fdto, path).map_err(|e| if e == -FDT_ERR_NOTFOUND { -FDT_ERR_BADOVERLAY } else { e })?;
     setprop_inplace_partial(fdto, fixup, name, poffset, &phandle.to_be_bytes())
 }
 
@@ -198,16 +190,17 @@ fn apply_node(fdt: &mut [u8], target: i32, fdto: &[u8], node: i32) -> FdtResult<
     }
     for subnode in subnodes(fdto, node) {
         let name = get_name(fdto, subnode)?;
-        let nnode = match add_subnode(fdt, target, name) {
-            Err(e) if e == -FDT_ERR_EXISTS => subnode_offset(fdt, target, name).map_err(|e| {
-                if e == -FDT_ERR_NOTFOUND {
-                    -FDT_ERR_INTERNAL
-                } else {
-                    e
-                }
-            })?,
-            r => r?,
-        };
+        let nnode =
+            match add_subnode(fdt, target, name) {
+                Err(e) if e == -FDT_ERR_EXISTS => subnode_offset(fdt, target, name).map_err(|e| {
+                    if e == -FDT_ERR_NOTFOUND {
+                        -FDT_ERR_INTERNAL
+                    } else {
+                        e
+                    }
+                })?,
+                r => r?,
+            };
         apply_node(fdt, nnode, fdto, subnode)?;
     }
     Ok(())
@@ -433,7 +426,11 @@ mod tests {
                         )],
                     )],
                 ),
-                node("__symbols__", vec![("mydev", s("/fragment@0/__overlay__/dev@2000"))], vec![]),
+                node(
+                    "__symbols__",
+                    vec![("mydev", s("/fragment@0/__overlay__/dev@2000"))],
+                    vec![],
+                ),
             ],
         );
         let mut fdt = build(&base, 1024);
