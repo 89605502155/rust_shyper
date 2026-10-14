@@ -1751,7 +1751,11 @@ pub fn gic_maintenance_handler() {
     let vm = match active_vm() {
         Some(vm) => vm,
         None => {
-            panic!("gic_maintenance_handler: current vcpu.vm is None");
+            // The vCPU is gone (for example its VM was just removed) while a
+            // maintenance request was pending: turn the requests off.
+            warn!("gic_maintenance_handler: no active vCPU, misr {:#x}", misr);
+            GICH.set_hcr(GICH.hcr() & !0xfe);
+            return;
         }
     };
     let vgic = vm.vgic();

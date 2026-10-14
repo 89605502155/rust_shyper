@@ -268,7 +268,13 @@ pub fn generate_blk_req(
                     );
                     add_async_task(task, false);
                 } else {
-                    todo!();
+                    // Only mediated disks have a backend; a guest must not be
+                    // able to stop the hypervisor with a disk request.
+                    warn!(
+                        "blk_req_handler: VM{} uses a non-mediated virtio disk, which is not supported",
+                        vm.id()
+                    );
+                    continue;
                 }
                 for iov in req_node.iov.iter() {
                     let data_bg = iov.data_bg;
@@ -332,7 +338,13 @@ pub fn generate_blk_req(
                     );
                     add_async_task(task, false);
                 } else {
-                    todo!();
+                    // Only mediated disks have a backend; a guest must not be
+                    // able to stop the hypervisor with a disk request.
+                    warn!(
+                        "blk_req_handler: VM{} uses a non-mediated virtio disk, which is not supported",
+                        vm.id()
+                    );
+                    continue;
                 }
             }
             VIRTIO_BLK_T_FLUSH => {
@@ -381,11 +393,8 @@ pub fn generate_blk_req(
 /// block request.
 pub fn virtio_mediated_blk_notify_handler(vq: Arc<Virtq>, blk: Arc<VirtioMmio>, vm: Arc<Vm>) -> bool {
     let src_vmid = vm.id();
-    let task = AsyncTask::new(
-        AsyncTaskData::AsyncIpiTask(IpiMediatedMsg { src_vm: vm, vq, blk }),
-        src_vmid,
-        async_ipi_req(),
-    );
+    let msg = IpiMediatedMsg { src_vm: vm, vq, blk };
+    let task = AsyncTask::new(AsyncTaskData::AsyncIpiTask(msg.clone()), src_vmid, async_ipi_req(msg));
     add_async_task(task, true);
     true
 }

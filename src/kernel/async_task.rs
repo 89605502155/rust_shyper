@@ -254,22 +254,16 @@ impl AsyncTask {
     }
 }
 
-/// async request function
-pub async fn async_ipi_req() {
-    let ipi_list = ASYNC_IPI_TASK_LIST.lock();
-    if ipi_list.is_empty() {
-        panic!("ipi_list should not be empty");
-    }
-    let task = ipi_list.front().unwrap().clone();
-    drop(ipi_list);
-    if let AsyncTaskData::AsyncIpiTask(msg) = task.task_data {
-        if active_vm_id() == 0 {
-            // Here, if the active vm is the service VM, handle the task directly
-            // Possible cond: share time slice with MVM
-            virtio_blk_notify_handler(msg.vq, msg.blk, msg.src_vm);
-        } else {
-            ipi_send_msg(0, IpiType::IpiTMediatedDev, IpiInnerMsg::MediatedMsg(msg));
-        }
+/// async request function: passes the disk request `msg` of a guest VM to the
+/// service VM. The request is owned by the task: looking it up at the front of
+/// the list returned another task's request when two cores ran tasks at once.
+pub async fn async_ipi_req(msg: IpiMediatedMsg) {
+    if active_vm_id() == 0 {
+        // Here, if the active vm is the service VM, handle the task directly
+        // Possible cond: share time slice with MVM
+        virtio_blk_notify_handler(msg.vq, msg.blk, msg.src_vm);
+    } else {
+        ipi_send_msg(0, IpiType::IpiTMediatedDev, IpiInnerMsg::MediatedMsg(msg));
     }
 }
 
@@ -375,7 +369,7 @@ pub fn async_task_exe() {
         }
     }
     loop {
-        let ipi_list = ASYNC_IPI_TASK_LIST.lock();
+        let mut ipi_list = ASYNC_IPI_TASK_LIST.lock();
         let io_list = ASYNC_IO_TASK_LIST.lock();
 
         // if !ipi_list.is_empty() {
@@ -389,13 +383,20 @@ pub fn async_task_exe() {
         let mut task;
         let ipi;
         if io_list.is_empty() {
-            if !ipi_list.is_empty() {
-                // other VM start an IO which need to be handled by service VM
-                task = ipi_list.front().unwrap().clone();
-                ipi = true;
-            } else {
-                set_async_exe_status(AsyncExeStatus::Pending);
-                return;
+            // Other VM start an IO which need to be handled by service VM.
+            // The task is taken off the list here, under the lock: several
+            // cores may run the executor at once (the service VM core and the
+            // core of the requesting VM), and peeking it with `front()` and
+            // popping it later let two cores run and pop the same task.
+            match ipi_list.pop_front() {
+                Some(t) => {
+                    task = t;
+                    ipi = true;
+                }
+                None => {
+                    set_async_exe_status(AsyncExeStatus::Pending);
+                    return;
+                }
             }
         } else {
             // if io_list is not empty, prioritize IO requests
@@ -404,9 +405,13 @@ pub fn async_task_exe() {
         }
         drop(ipi_list);
         drop(io_list);
-        if task.handle() || ipi {
+        if ipi {
+            // An IPI task is finished once it has been handled.
+            task.handle();
+            complete_async_task(task);
+        } else if task.handle() {
             // task finish
-            finish_async_task(ipi);
+            finish_async_task(false);
         } else {
             // wait for notify
             set_async_exe_status(AsyncExeStatus::Pending);
@@ -431,6 +436,11 @@ pub fn finish_async_task(ipi: bool) {
     // println!("finish_async_task: ipi len {} io len {}", ipi_list.len(), io_list.len());
     drop(io_list);
     drop(ipi_list);
+    complete_async_task(task);
+}
+
+/// Completes a task that was already taken off its list.
+fn complete_async_task(task: AsyncTask) {
     match task.task_data {
         AsyncTaskData::AsyncIoTask(args) => {
             if args.io_type == VIRTIO_BLK_T_IN {

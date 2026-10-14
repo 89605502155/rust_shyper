@@ -266,8 +266,11 @@ fn hvc_config_handler(
 
 fn hvc_sys_handler(event: usize, _x0: usize) -> Result<usize, ()> {
     match event {
+        // A VM must not be able to stop the hypervisor with a hypercall that
+        // is not implemented: these return an error instead of panicking.
         HVC_SYS_UPDATE => {
-            todo!()
+            warn!("hvc: hypervisor live update is not supported");
+            Err(())
         }
         HVC_SYS_TEST => {
             println!("HVC SYS TEST");
@@ -281,14 +284,16 @@ fn hvc_vmm_handler(event: usize, x0: usize, _x1: usize) -> Result<usize, ()> {
     match event {
         HVC_VMM_LIST_VM => vmm_list_vm(x0),
         HVC_VMM_GET_VM_STATE => {
-            todo!();
+            warn!("hvc: getting the state of a VM is not supported");
+            Err(())
         }
         HVC_VMM_BOOT_VM => {
             vmm_boot_vm(x0);
             Ok(HVC_FINISH)
         }
         HVC_VMM_SHUTDOWN_VM => {
-            todo!();
+            warn!("hvc: VM shutdown is not supported, remove the VM instead");
+            Err(())
         }
         HVC_VMM_REBOOT_VM => {
             vmm_reboot_vm(x0);
@@ -412,7 +417,8 @@ pub fn hvc_send_msg_to_vm(vm_id: usize, guest_msg: &HvcGuestMsg) -> bool {
             (msg.fid, msg.event)
         }
         HvcGuestMsg::Migrate(_msg) => {
-            todo!()
+            warn!("hvc: VM migration is not supported");
+            return false;
         }
         HvcGuestMsg::Manage(msg) => {
             // SAFETY:
@@ -520,16 +526,16 @@ pub fn hvc_ipi_handler(msg: IpiMessage) {
                     HVC_CONFIG_UPLOAD_KERNEL_IMAGE => {
                         hvc_guest_notify(msg.trgt_vmid);
                     }
-                    _ => {
-                        todo!();
+                    event => {
+                        warn!("hvc ipi: unsupported config event {event}");
                     }
                 },
                 #[cfg(feature = "unilib")]
                 HVC_UNILIB => {
                     hvc_guest_notify(msg.trgt_vmid);
                 }
-                _ => {
-                    todo!();
+                fid => {
+                    warn!("hvc ipi: unsupported hypercall fid {fid:#x}");
                 }
             }
         }
