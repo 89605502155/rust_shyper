@@ -157,18 +157,7 @@ pub fn vmm_init_image(vm: &Vm) -> bool {
                 if name == "L4T" {
                     info!("MVM {} loading Image", vm.id());
                     // vmm_load_image(vm.clone(), include_bytes!("../../image/L4T"));
-                    extern "C" {
-                        fn _binary_vm0img_start();
-                        fn _binary_vm0img_size();
-                    }
-                    // SAFETY:
-                    // The '_binary_vm0img_start' and '_binary_vm0img_size' are valid from linker script.
-                    let vm0image = unsafe {
-                        core::slice::from_raw_parts(
-                            _binary_vm0img_start as usize as *const u8,
-                            _binary_vm0img_size as usize,
-                        )
-                    };
+                    let vm0image = super::image::vm0_image();
                     vmm_load_image(vm, vm0image);
                 } else if name == "Image_vanilla" {
                     info!("VM {} loading default Linux Image", vm.id());
@@ -183,36 +172,14 @@ pub fn vmm_init_image(vm: &Vm) -> bool {
                 if name.is_empty() {
                     panic!("kernel image name empty")
                 } else {
-                    extern "C" {
-                        fn _binary_vm0img_start();
-                        fn _binary_vm0img_size();
-                    }
                     info!("MVM {} loading Image", vm.id());
-                    // SAFETY:
-                    // The '_binary_vm0img_start' and '_binary_vm0img_size' are valid from linker script.
-                    let vm0image = unsafe {
-                        core::slice::from_raw_parts(
-                            _binary_vm0img_start as usize as *const u8,
-                            _binary_vm0img_size as usize,
-                        )
-                    };
+                    let vm0image = super::image::vm0_image();
                     vmm_load_image(vm, vm0image);
                 }
                 #[cfg(feature = "rk3588")]
                 if name == "Linux-5.10" {
                     info!("MVM {} loading Image", vm.id());
-                    extern "C" {
-                        fn _binary_vm0img_start();
-                        fn _binary_vm0img_size();
-                    }
-                    // SAFETY:
-                    // The '_binary_vm0img_start' and '_binary_vm0img_size' are valid from linker script.
-                    let vm0image = unsafe {
-                        core::slice::from_raw_parts(
-                            _binary_vm0img_start as usize as *const u8,
-                            _binary_vm0img_size as usize,
-                        )
-                    };
+                    let vm0image = super::image::vm0_image();
                     vmm_load_image(vm, vm0image);
                 } else if name == "Image_vanilla" {
                     info!("VM {} loading default Linux Image", vm.id());

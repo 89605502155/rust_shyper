@@ -13,7 +13,7 @@ use alloc::vec::Vec;
 #[cfg(target_arch = "riscv64")]
 use riscv::register::{hgatp, hstatus, sie};
 #[cfg(target_arch = "riscv64")]
-use core::arch::riscv64::hlv_wu;
+use crate::arch::hext::hlv_wu;
 use core::mem::size_of;
 use spin::Mutex;
 use crate::arch::traits::VmContextTrait;

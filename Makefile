@@ -11,25 +11,26 @@ FEATURES ?=
 
 # Toolchain
 ifeq ($(ARCH), aarch64)
-	CROSS_COMPILE := aarch64-none-elf-
 	RUST_TARGET := aarch64-unknown-none-softfloat
 	TEXT_START := 0x40080000
-	VM0_IMAGE_PATH := "./image/Image_vanilla"
+	VM0_IMAGE_PATH := ./image/Image_vanilla
 else ifeq ($(ARCH), riscv64)
-	CROSS_COMPILE := riscv64-linux-gnu-
 	RUST_TARGET := riscv64imac-unknown-none-elf
 	TEXT_START := 0x80200000
-	VM0_IMAGE_PATH := "./image/Image-6.10-rc1"
+	VM0_IMAGE_PATH := ./image/Image-6.10-rc1
 else
 $(error bad arch: $(ARCH))
 endif
 
 QEMU := qemu-system-$(ARCH)
 
-GDB = ${CROSS_COMPILE}gdb
-OBJDUMP = ${CROSS_COMPILE}objdump
-OBJCOPY = ${CROSS_COMPILE}objcopy
-LD = ${CROSS_COMPILE}ld
+# Only the Rust toolchain is needed: rust-lld links the image, llvm-objcopy and
+# llvm-objdump come from the llvm-tools rustup component (see rust-toolchain).
+RUST_TOOLS := $(shell rustc --print sysroot)/lib/rustlib/$(shell rustc -vV | sed -n 's/^host: //p')/bin
+LD := "$(RUST_TOOLS)/rust-lld" -flavor gnu
+OBJCOPY := "$(RUST_TOOLS)/llvm-objcopy"
+OBJDUMP := "$(RUST_TOOLS)/llvm-objdump"
+GDB ?= gdb-multiarch
 
 GIC_VERSION ?= 2
 
@@ -51,7 +52,7 @@ ifeq ($(ARCH), riscv64)
 endif
 
 TEXT_START ?= 0x83000000
-VM0_IMAGE_PATH ?= "./image/L4T"
+VM0_IMAGE_PATH ?= ./image/L4T
 
 RELOCATE_IMAGE=librust_shyper.a
 IMAGE=rust_shyper
@@ -89,19 +90,7 @@ ifeq (${PROFILE}, release)
 CARGO_FLAGS := ${CARGO_FLAGS} --release
 endif
 
-# Make 'cc' crate in dependencies cross compiles properly.
-CFLAGS += -fno-stack-protector
-
-ifeq ($(ARCH), aarch64)
-	CFLAGS += -mgeneral-regs-only
-else ifeq ($(ARCH), riscv64)
-	export CRATE_CC_NO_DEFAULTS := true
-	CFLAGS += -ffunction-sections -fdata-sections \
-		  -fPIC -fno-omit-frame-pointer -mabi=lp64 -mcmodel=medany -march=rv64ima \
-		  -ffreestanding
-endif
-
-export BOARD CROSS_COMPILE CFLAGS AIA_GUESTS = $(AIA_GUESTS)
+export BOARD VM0_IMAGE_PATH AIA_GUESTS = $(AIA_GUESTS)
 
 CARGO_ACTION ?= build
 
@@ -112,8 +101,8 @@ UBOOT_IMAGE ?= Image$(USER)_$(ARCH)_$(BOARD)
 .PHONY: build doc cargo upload qemu rk3588 tx2 pi4 tx2_update tx2_ramdisk gdb clean clippy
 
 build: cargo
-	bash linkimg.sh -i "${TARGET_DIR}/${RELOCATE_IMAGE}" -m ${VM0_IMAGE_PATH} \
-		-t "${LD}" -f "linkers/${ARCH}.ld" -s ${TEXT_START} -o "${TARGET_DIR}/${IMAGE}"
+	${LD} "${TARGET_DIR}/${RELOCATE_IMAGE}" -T "linkers/${ARCH}.ld" \
+		--defsym TEXT_START=${TEXT_START} -o "${TARGET_DIR}/${IMAGE}"
 	${OBJDUMP} --demangle -d "${TARGET_DIR}/${IMAGE}" > "${TARGET_DIR}/t.txt"
 	${OBJCOPY} "${TARGET_DIR}/${IMAGE}" -O binary "${TARGET_DIR}/${IMAGE}.bin"
 
@@ -131,19 +120,19 @@ qemu:
 	${OBJCOPY} "${TARGET_DIR}/${IMAGE}" -O binary "${TARGET_DIR}/${IMAGE}.bin"
 
 qemu_uboot:
-	$(MAKE) upload BOARD=qemu TEXT_START=0x80200000 VM0_IMAGE_PATH="./image/Image_vanilla"
+	$(MAKE) upload BOARD=qemu TEXT_START=0x80200000 VM0_IMAGE_PATH=./image/Image_vanilla
 
 rk3588:
-	$(MAKE) upload BOARD=rk3588 TEXT_START=0x00480000 VM0_IMAGE_PATH="./image/Image-5.10.160"
+	$(MAKE) upload BOARD=rk3588 TEXT_START=0x00480000 VM0_IMAGE_PATH=./image/Image-5.10.160
 
 tx2:
-	$(MAKE) upload BOARD=tx2 TEXT_START=0x83000000 VM0_IMAGE_PATH="./image/L4T"
+	$(MAKE) upload BOARD=tx2 TEXT_START=0x83000000 VM0_IMAGE_PATH=./image/L4T
 
 tx2_ramdisk:
-	$(MAKE) upload BOARD=tx2 FEATURES=ramdisk TEXT_START=0x83000000 VM0_IMAGE_PATH="./image/L4T"
+	$(MAKE) upload BOARD=tx2 FEATURES=ramdisk TEXT_START=0x83000000 VM0_IMAGE_PATH=./image/L4T
 
 pi4:
-	$(MAKE) upload BOARD=pi4 TEXT_START=0xf0080000 VM0_IMAGE_PATH="./image/Image_pi4_5.4.83_tlb"
+	$(MAKE) upload BOARD=pi4 TEXT_START=0xf0080000 VM0_IMAGE_PATH=./image/Image_pi4_5.4.83_tlb
 
 
 QEMU_SERIAL_OPTIONS = -serial mon:stdio #\

@@ -8,12 +8,13 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-use core::arch::asm;
+use super::hext::{hfence_gvma_all, hfence_vvma_all};
 
 pub fn tlb_invalidate_guest_all() {
     // SAFETY:
     // Invalidate all guest tlb entries.
     unsafe {
-        asm!("hfence.vvma", "hfence.gvma");
+        hfence_vvma_all();
+        hfence_gvma_all();
     }
 }

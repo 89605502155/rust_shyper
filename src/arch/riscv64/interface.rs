@@ -38,7 +38,7 @@ impl ArchTrait for Riscv64Arch {
         riscv::register::hgatp::set(&setting);
 
         // SAFETY: Flush gTLB
-        unsafe { core::arch::riscv64::hfence_gvma_all() };
+        unsafe { super::hext::hfence_gvma_all() };
 
         // SAFETY: Flush I-Cache
         unsafe { riscv::asm::fence_i() };

@@ -41,7 +41,37 @@ fn main() {
     println!("cargo:rustc-link-arg=-Tlinkers/{arch}.ld");
     println!("cargo:rustc-link-arg=--defsym=TEXT_START={text_start}");
 
+    // The MVM kernel image embedded by src/vmm/image.rs.
+    println!("cargo:rerun-if-env-changed=VM0_IMAGE_PATH");
+    let default_image = if arch == "riscv64" {
+        "image/Image-6.10-rc1"
+    } else {
+        "image/Image_vanilla"
+    };
+    let image = var("VM0_IMAGE_PATH").unwrap_or_else(|_| default_image.to_string());
+    let image = std::path::Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join(image.trim_matches('"'));
+    let image = image
+        .canonicalize()
+        .unwrap_or_else(|e| panic!("MVM image {}: {}", image.display(), e));
+    println!("cargo:rerun-if-changed={}", image.display());
+    println!("cargo:rustc-env=SHYPER_VM0_IMAGE={}", image.display());
+
     let commit_hash = Command::new("git").args(["rev-parse", "HEAD"]).output().unwrap();
+    // The MVM kernel image embedded by src/vmm/image.rs.
+    println!("cargo:rerun-if-env-changed=VM0_IMAGE_PATH");
+    let default_image = if arch == "riscv64" {
+        "image/Image-6.10-rc1"
+    } else {
+        "image/Image_vanilla"
+    };
+    let image = var("VM0_IMAGE_PATH").unwrap_or_else(|_| default_image.to_string());
+    let image = std::path::Path::new(&var("CARGO_MANIFEST_DIR").unwrap()).join(image.trim_matches('"'));
+    let image = image
+        .canonicalize()
+        .unwrap_or_else(|e| panic!("MVM image {}: {}", image.display(), e));
+    println!("cargo:rerun-if-changed={}", image.display());
+    println!("cargo:rustc-env=SHYPER_VM0_IMAGE={}", image.display());
+
     let commit_hash = String::from_utf8(commit_hash.stdout).unwrap();
     println!("cargo:rustc-env=GIT_COMMIT={}", commit_hash.trim());
 

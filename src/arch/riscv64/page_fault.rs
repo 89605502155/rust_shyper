@@ -1,4 +1,6 @@
-use core::{arch::riscv64::hlvx_hu, panic};
+use core::panic;
+
+use super::hext::hlvx_hu;
 
 use crate::{
     arch::print_vs_regs,

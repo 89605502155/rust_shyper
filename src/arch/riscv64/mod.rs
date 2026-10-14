@@ -2,6 +2,7 @@ pub mod cache;
 mod context_frame;
 mod cpu;
 mod exception;
+pub mod hext;
 pub mod interface;
 pub mod interrupt;
 mod page_fault;
