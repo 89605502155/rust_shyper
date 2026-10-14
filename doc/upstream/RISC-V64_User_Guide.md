@@ -352,7 +352,7 @@ minicom -D /dev/hvc1 -b 115200
 
 这样就可以与GVM交互了：
 
-![与GVM交互图](img/gvm.png)
+![与GVM交互图](../img/gvm.png)
 
 > 本项目镜像中带有的GVM镜像 `vm0_ubuntu.img`，其用户名为root，密码为vm1
 
@@ -360,7 +360,7 @@ minicom -D /dev/hvc1 -b 115200
 
 MVM上默认绑定了两块网卡：eth0和eth1，均为virtio网卡。其中第一块是虚拟网卡，第二块是来自qemu的直通物理网卡。
 
-![MVM网卡](img/iface.png)
+![MVM网卡](../img/iface.png)
 
 MVM绑定的网卡地址为10.0.0.1(eth0，作为GVM的网关)和10.0.2.15(eth1, 网关为10.0.2.2，通过该网关访问外部网络)。
 
@@ -368,7 +368,7 @@ MVM绑定的网卡地址为10.0.0.1(eth0，作为GVM的网关)和10.0.2.15(eth1,
 
 MVM可以通过10.0.0.0/24网段与GVM通信，并通过10.0.2.2网关与外网通信。具体的网络拓扑图如下图所示：
 
-![alt text](img/network-topo.png)
+![alt text](../img/network-topo.png)
 
 ## 通过AIA启动Rust-Shyper
 

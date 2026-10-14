@@ -1,0 +1,24 @@
+trosna-shyper
+Copyright (c) 2026 Andrey Ferubko.
+
+trosna-shyper is derived from Rust-Shyper
+(https://github.com/openeuler-mirror/rust_shyper, commit 62a2053):
+Copyright (c) 2023 Beihang University, Huawei Technologies Co.,Ltd.
+All rights reserved. Licensed under the Mulan PSL v2 (see LICENSE).
+The copyright notices of the original files are kept in their headers.
+
+deps/libfdt-rs is derived from libfdt-rs
+(https://github.com/Zera-Algorithm/libfdt-rs, commit 44570fb), part of the
+Rust-Shyper project, and from libfdt of dtc
+(https://git.kernel.org/pub/scm/utils/dtc/dtc.git):
+Copyright (C) 2006 David Gibson, IBM Corporation.
+Copyright (C) 2016 Free Electrons. Copyright (C) 2016 NextThing Co.
+The ported libfdt code is used under the BSD 2-Clause license
+(see deps/libfdt-rs/LICENSE).
+
+image/ and tools/shyper.ko contain prebuilt Linux kernels and a Linux kernel
+module distributed with Rust-Shyper; Linux is licensed under the GPL-2.0.
+
+tools/mkrootfs.sh downloads the Fedora container image
+(registry.fedoraproject.org/fedora) at build time; Fedora is not part of
+this repository.
