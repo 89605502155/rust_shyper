@@ -76,8 +76,6 @@ fn ecall_handler(ctx: &mut ContextFrame) {
     let x4 = ctx.gpr[A4_NUM] as usize;
     let x5 = ctx.gpr[A5_NUM] as usize;
 
-    let ret;
-
     // SBI spec defined this space as firmware specific extension space
     // we use this space for hvc call
     if (0x0A000000..=0x0AFFFFFF).contains(&eid) {
@@ -95,8 +93,8 @@ fn ecall_handler(ctx: &mut ContextFrame) {
         return;
     }
 
-    ret = SBI_VM_HART
-        .call_once(|| VmHart::new())
+    let ret = SBI_VM_HART
+        .call_once(VmHart::new)
         .handle_ecall(eid as usize, fid as usize, [x0, x1, x2, x3, x4, x5]);
 
     if eid == EID_HSM as u64 && fid == HART_STOP as u64 {

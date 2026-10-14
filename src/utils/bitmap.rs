@@ -139,7 +139,7 @@ pub struct FlexBitmap {
 
 impl FlexBitmap {
     pub fn new(len: usize) -> FlexBitmap {
-        let map = vec![0; (len + 64 - 1) / 64];
+        let map = vec![0; len.div_ceil(64)];
         FlexBitmap { len, map }
     }
 
@@ -185,7 +185,7 @@ impl FlexBitmap {
         if len == 1 {
             self.set(bit, val);
         } else {
-            if bit % 64 != 0 || (bit + len) % 64 != 0 {
+            if !bit.is_multiple_of(64) || !(bit + len).is_multiple_of(64) {
                 panic!("set_bits: bit start and len should align with 64");
             }
 

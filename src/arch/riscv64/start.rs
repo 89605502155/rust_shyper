@@ -28,7 +28,9 @@ pub fn get_trapframe_for_hart(cpu_id: usize) -> u64 {
     // 3. cpu_id is a valid usize, and it is less than MAX_CPU
     // 4. So, the addr is a valid address which not exceed the BOOT_STACK's range
     unsafe {
-        let addr = BOOT_STACK.0.as_ptr().add(cpu_id * BOOT_STACK_SIZE);
+        let addr = core::ptr::addr_of!(BOOT_STACK.0)
+            .cast::<u8>()
+            .add(cpu_id * BOOT_STACK_SIZE);
         addr as u64
     }
 }
@@ -122,7 +124,10 @@ fn init_sysregs() {
     // 5. set stvec handler
     // SAFETY: exception_entry is a valid assembly function for handling exceptions
     unsafe {
-        riscv::register::stvec::write(exception_entry as usize, riscv::register::stvec::TrapMode::Direct);
+        riscv::register::stvec::write(
+            exception_entry as *const () as usize,
+            riscv::register::stvec::TrapMode::Direct,
+        );
     }
 }
 
@@ -164,7 +169,9 @@ pub fn riscv_init(is_init_core: bool, cpu_id: usize, dtb: &mut fdt::myctypes::c_
     // 2. Every cpu's stack is 2 pages, so the size of the stack is 4096 * 2, greater than 304+4
     // 3. cpu_id is a valid usize, and it is less than MAX_CPU
     unsafe {
-        let addr = BOOT_STACK.0.as_ptr().add(cpu_id * BOOT_STACK_SIZE);
+        let addr = core::ptr::addr_of!(BOOT_STACK.0)
+            .cast::<u8>()
+            .add(cpu_id * BOOT_STACK_SIZE);
         // Later, we will write scratch to a predefined storage location (i.e. the unused BootStack),
         // Enables the context to be stored directly here when an interruption occurs
         riscv::register::sscratch::write(0);
@@ -259,7 +266,8 @@ pub fn arch_boot_secondary_cores(dtb: &mut fdt::myctypes::c_void) {
         if (BOOTED_CORES.load(SeqCst) & (1 << i)) != 0 {
             continue;
         }
-        let result = sbi_rt::hart_start(i, _secondary_start as usize, dtb as *mut _ as usize).into_result();
+        let result =
+            sbi_rt::hart_start(i, _secondary_start as *const () as usize, dtb as *mut _ as usize).into_result();
         if let Err(err) = result {
             println!("An error happens when booting core {}: {:?}", i, err);
         }
@@ -319,9 +327,13 @@ pub unsafe extern "C" fn _secondary_start() -> ! {
 unsafe extern "C" fn clear_bss() {
     println!(
         "bss_begin: {:016x}, bss_end: {:016x}",
-        _bss_begin as usize, _bss_end as usize
+        _bss_begin as *const () as usize, _bss_end as *const () as usize
     );
-    core::slice::from_raw_parts_mut(_bss_begin as *mut u8, _bss_end as usize - _bss_begin as usize).fill(0);
+    core::slice::from_raw_parts_mut(
+        _bss_begin as *mut u8,
+        _bss_end as *const () as usize - _bss_begin as *const () as usize,
+    )
+    .fill(0);
 }
 
 pub fn boot_core() -> usize {

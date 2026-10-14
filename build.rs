@@ -41,6 +41,23 @@ fn main() {
     println!("cargo:rustc-link-arg=-Tlinkers/{arch}.ld");
     println!("cargo:rustc-link-arg=--defsym=TEXT_START={text_start}");
 
+    // The board name printed at boot: BOARD from the Makefile, or else the
+    // board feature cargo was given.
+    println!("cargo:rerun-if-env-changed=BOARD");
+    let board = var("BOARD").unwrap_or_else(|_| {
+        ["tx2", "pi4", "rk3588", "qemu"]
+            .into_iter()
+            .find(|b| var(format!("CARGO_FEATURE_{}", b.to_uppercase())).is_ok())
+            .unwrap_or("unknown")
+            .to_string()
+    });
+    println!("cargo:rustc-env=BOARD={board}");
+
+    // Number of AIA guest interrupt files (riscv64), as passed to QEMU.
+    println!("cargo:rerun-if-env-changed=AIA_GUESTS");
+    let aia_guests = var("AIA_GUESTS").unwrap_or_else(|_| "3".to_string());
+    println!("cargo:rustc-env=AIA_GUESTS={aia_guests}");
+
     // The MVM kernel image embedded by src/vmm/image.rs.
     println!("cargo:rerun-if-env-changed=VM0_IMAGE_PATH");
     let default_image = if arch == "riscv64" {
@@ -57,6 +74,23 @@ fn main() {
     println!("cargo:rustc-env=SHYPER_VM0_IMAGE={}", image.display());
 
     let commit_hash = Command::new("git").args(["rev-parse", "HEAD"]).output().unwrap();
+    // The board name printed at boot: BOARD from the Makefile, or else the
+    // board feature cargo was given.
+    println!("cargo:rerun-if-env-changed=BOARD");
+    let board = var("BOARD").unwrap_or_else(|_| {
+        ["tx2", "pi4", "rk3588", "qemu"]
+            .into_iter()
+            .find(|b| var(format!("CARGO_FEATURE_{}", b.to_uppercase())).is_ok())
+            .unwrap_or("unknown")
+            .to_string()
+    });
+    println!("cargo:rustc-env=BOARD={board}");
+
+    // Number of AIA guest interrupt files (riscv64), as passed to QEMU.
+    println!("cargo:rerun-if-env-changed=AIA_GUESTS");
+    let aia_guests = var("AIA_GUESTS").unwrap_or_else(|_| "3".to_string());
+    println!("cargo:rustc-env=AIA_GUESTS={aia_guests}");
+
     // The MVM kernel image embedded by src/vmm/image.rs.
     println!("cargo:rerun-if-env-changed=VM0_IMAGE_PATH");
     let default_image = if arch == "riscv64" {

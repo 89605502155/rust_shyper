@@ -10,30 +10,36 @@ macro_rules! csrr {
             r
         }
     };
-    ($val: expr, $reg: expr, $asm_width:tt) => {
+    ($val: expr, $reg: expr, $asm_width:tt) => {{
+        let v;
         unsafe {
-            core::arch::asm!(concat!("csrr {0:", $asm_width, "}, ", stringify!($reg)), out(reg) $val, options(nomem, nostack));
+            core::arch::asm!(concat!("csrr {0:", $asm_width, "}, ", stringify!($reg)), out(reg) v, options(nomem, nostack));
         }
-    };
-    ($val: expr, $reg: expr) => {
+        $val = v;
+    }};
+    ($val: expr, $reg: expr) => {{
+        let v;
         unsafe {
-            core::arch::asm!(concat!("csrr {0}, ", stringify!($reg)), out(reg) $val, options(nomem, nostack));
+            core::arch::asm!(concat!("csrr {0}, ", stringify!($reg)), out(reg) v, options(nomem, nostack));
         }
-    };
+        $val = v;
+    }};
 }
 
 #[macro_export]
 macro_rules! csrw {
-    ($reg: expr, $val: expr, $asm_width:tt) => {
+    ($reg: expr, $val: expr, $asm_width:tt) => {{
+        let v = $val;
         unsafe {
-            core::arch::asm!(concat!("csrw ", stringify!($reg), ", {0:", $asm_width, "}"), in(reg) $val, options(nomem, nostack));
+            core::arch::asm!(concat!("csrw ", stringify!($reg), ", {0:", $asm_width, "}"), in(reg) v, options(nomem, nostack));
         }
-    };
-    ($reg: expr, $val: expr) => {
+    }};
+    ($reg: expr, $val: expr) => {{
+        let v = $val;
         unsafe {
-            core::arch::asm!(concat!("csrw ", stringify!($reg), ", {0}"), in(reg) $val, options(nomem, nostack));
+            core::arch::asm!(concat!("csrw ", stringify!($reg), ", {0}"), in(reg) v, options(nomem, nostack));
         }
-    };
+    }};
 }
 
 pub const RISCV_REG_NAME: [&str; 32] = [

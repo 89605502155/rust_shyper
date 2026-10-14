@@ -1452,7 +1452,7 @@ impl Vgic {
                 self.set_icfgr(
                     current_cpu().active_vcpu.as_ref().unwrap(),
                     irq,
-                    bit_extract(cfg as usize, bit, GIC_CONFIG_BITS) as u8,
+                    bit_extract(cfg, bit, GIC_CONFIG_BITS) as u8,
                 );
                 bit += 2;
                 irq += 1;
@@ -1526,7 +1526,7 @@ impl Vgic {
 
         while lr_idx_opt.is_some() {
             let lr_idx = lr_idx_opt.unwrap();
-            let lr_val = GICH.lr(lr_idx) as usize;
+            let lr_val = GICH.lr(lr_idx);
             GICH.set_lr(lr_idx, 0);
 
             match self.get_int(vcpu, bit_extract(lr_val, GICH_LR_VID_OFF, GICH_LR_VID_LEN)) {
@@ -1558,7 +1558,7 @@ impl Vgic {
         let binding = array.into_iter().flatten().flatten();
         /// SAFETY: All VgicInt are allocated when initializing, so it's safe to convert them to NonNull
         binding
-            .min_by_key(|x| (((unsafe { x.as_ref().prio() } as u32) << 10) | unsafe { x.as_ref().id() } as u32))
+            .min_by_key(|x| ((unsafe { x.as_ref().prio() } as u32) << 10) | unsafe { x.as_ref().id() } as u32)
             .cloned()
     }
 
@@ -1601,7 +1601,7 @@ impl Vgic {
         /// SAFETY: All VgicInt are allocated when initializing, so it's safe to convert them to NonNull
         let interrupt = binding
             .iter()
-            .min_by_key(|x| (((unsafe { x.as_ref().prio() } as u32) << 10) | unsafe { x.as_ref().id() } as u32))
+            .min_by_key(|x| ((unsafe { x.as_ref().prio() } as u32) << 10) | unsafe { x.as_ref().id() } as u32)
             .cloned();
         drop(cpu_priv);
         if let Some(int_ptr) = interrupt {

@@ -344,7 +344,7 @@ unsafe fn fdt_add_virtio_riscv64(
     base_ipa: u64,
     length: u64,
 ) {
-    let node = fdt_create_node(dtb, "/soc\0".as_ptr(), name.as_ptr());
+    let node = fdt_create_node(dtb, c"/soc".as_ptr(), name.as_ptr());
     if node < 0 {
         panic!("fdt_create_node failed {}", node);
     }
@@ -352,7 +352,7 @@ unsafe fn fdt_add_virtio_riscv64(
     #[cfg(feature = "plic")]
     {
         let int_phandle_id = 9_u32;
-        let ret = fdt_add_property_u32(dtb, node, "interrupts\0".as_ptr(), irq_id);
+        let ret = fdt_add_property_u32(dtb, node, c"interrupts".as_ptr(), irq_id);
         if ret < 0 {
             panic!("fdt_add_property_u32 failed {}", ret);
         }
@@ -360,7 +360,7 @@ unsafe fn fdt_add_virtio_riscv64(
         let ret = fdt_add_property_u32(
             dtb,
             node,
-            "interrupt-parent\0".as_ptr(),
+            c"interrupt-parent".as_ptr(),
             int_phandle_id, // phandle id
         );
         if ret < 0 {
@@ -371,7 +371,7 @@ unsafe fn fdt_add_virtio_riscv64(
     {
         let int_phandle_id = 12_u32;
         let mut interrupts = [irq_id, 0x04];
-        let ret = fdt_add_property_u32_array(dtb, node, "interrupts\0".as_ptr(), interrupts.as_mut_ptr(), 2);
+        let ret = fdt_add_property_u32_array(dtb, node, c"interrupts".as_ptr(), interrupts.as_mut_ptr(), 2);
         if ret < 0 {
             panic!("fdt_add_property_u32 failed {}", ret);
         }
@@ -379,7 +379,7 @@ unsafe fn fdt_add_virtio_riscv64(
         let ret = fdt_add_property_u32(
             dtb,
             node,
-            "interrupt-parent\0".as_ptr(),
+            c"interrupt-parent".as_ptr(),
             int_phandle_id, // phandle id
         );
         if ret < 0 {
@@ -388,12 +388,12 @@ unsafe fn fdt_add_virtio_riscv64(
     }
 
     let mut regs = [base_ipa, length];
-    let ret = fdt_add_property_u64_array(dtb, node, "reg\0".as_ptr(), regs.as_mut_ptr(), 2);
+    let ret = fdt_add_property_u64_array(dtb, node, c"reg".as_ptr(), regs.as_mut_ptr(), 2);
     if ret < 0 {
         panic!("fdt_add_property_u64_array failed {}", ret);
     }
 
-    fdt_add_property_string(dtb, node, "compatible\0".as_ptr(), "virtio,mmio\0".as_ptr());
+    fdt_add_property_string(dtb, node, c"compatible".as_ptr(), c"virtio,mmio".as_ptr());
     trace!("fdt_add_virtio: {} irq = {}", name, irq_id);
 }
 
@@ -403,12 +403,14 @@ unsafe fn fdt_add_virtio_riscv64(
 /// 2. 'irq_id' is a valid interrupt id
 /// 3. 'base_ipa' is a valid ipa
 unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u32, base_ipa: u64, length: u64) {
-    let node = fdt_create_node(dtb, "/soc\0".as_ptr(), "vm_service\0".as_ptr());
+    #[cfg(not(any(feature = "plic", feature = "aia")))]
+    let _ = irq_id;
+    let node = fdt_create_node(dtb, c"/soc".as_ptr(), c"vm_service".as_ptr());
     if node < 0 {
         panic!("fdt_create_node failed {}", node);
     }
 
-    let ret = fdt_add_property_string(dtb, node, "compatible\0".as_ptr(), "shyper\0".as_ptr());
+    let ret = fdt_add_property_string(dtb, node, c"compatible".as_ptr(), c"shyper".as_ptr());
     if ret < 0 {
         panic!("fdt_add_property_string failed {}", ret);
     }
@@ -416,7 +418,7 @@ unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u3
     #[cfg(feature = "plic")]
     {
         let int_phandle_id = 9_u32;
-        let ret = fdt_add_property_u32(dtb, node, "interrupts\0".as_ptr(), irq_id);
+        let ret = fdt_add_property_u32(dtb, node, c"interrupts".as_ptr(), irq_id);
         if ret < 0 {
             panic!("fdt_add_property_u32 failed {}", ret);
         }
@@ -424,7 +426,7 @@ unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u3
         let ret = fdt_add_property_u32(
             dtb,
             node,
-            "interrupt-parent\0".as_ptr(),
+            c"interrupt-parent".as_ptr(),
             int_phandle_id, // phandle id
         );
         if ret < 0 {
@@ -435,7 +437,7 @@ unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u3
     {
         let int_phandle_id = 12_u32;
         let mut interrupts = [irq_id, 0x04];
-        let ret = fdt_add_property_u32_array(dtb, node, "interrupts\0".as_ptr(), interrupts.as_mut_ptr(), 2);
+        let ret = fdt_add_property_u32_array(dtb, node, c"interrupts".as_ptr(), interrupts.as_mut_ptr(), 2);
         if ret < 0 {
             panic!("fdt_add_property_u32 failed {}", ret);
         }
@@ -443,7 +445,7 @@ unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u3
         let ret = fdt_add_property_u32(
             dtb,
             node,
-            "interrupt-parent\0".as_ptr(),
+            c"interrupt-parent".as_ptr(),
             int_phandle_id, // phandle id
         );
         if ret < 0 {
@@ -452,7 +454,7 @@ unsafe fn fdt_add_vm_service_riscv64(dtb: *mut fdt::myctypes::c_void, irq_id: u3
     }
 
     let mut regs = [base_ipa, length];
-    let ret = fdt_add_property_u64_array(dtb, node, "reg\0".as_ptr(), regs.as_mut_ptr(), 2);
+    let ret = fdt_add_property_u64_array(dtb, node, c"reg".as_ptr(), regs.as_mut_ptr(), 2);
     if ret < 0 {
         panic!("fdt_add_property_u64_array failed {}", ret);
     }
@@ -472,23 +474,23 @@ pub unsafe fn vmm_setup_fdt(config: &VmConfigEntry, dtb: *mut fdt::myctypes::c_v
         });
     }
     #[cfg(feature = "tx2")]
-    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), "memory@90000000\0".as_ptr());
+    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), c"memory@90000000".as_ptr());
     #[cfg(feature = "pi4")]
-    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), "memory@200000\0".as_ptr());
+    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), c"memory@200000".as_ptr());
     #[cfg(all(feature = "qemu", target_arch = "aarch64"))]
-    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), "memory@50000000\0".as_ptr());
+    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), c"memory@50000000".as_ptr());
     #[cfg(all(feature = "qemu", target_arch = "riscv64"))]
-    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), "memory@90000000\0".as_ptr());
+    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), c"memory@90000000".as_ptr());
     #[cfg(feature = "rk3588")]
-    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), "memory@10000000\0".as_ptr());
+    fdt_set_memory(dtb, mr.len() as u64, mr.as_ptr(), c"memory@10000000".as_ptr());
     // FDT+TIMER
     //fdt_add_timer(dtb, 0x04);
     // FDT+BOOTCMD
     fdt_set_bootcmd(dtb, config.cmdline.as_ptr());
     #[cfg(feature = "tx2")]
-    fdt_set_stdout_path(dtb, "/serial@3100000\0".as_ptr());
+    fdt_set_stdout_path(dtb, c"/serial@3100000".as_ptr());
     #[cfg(feature = "rk3588")]
-    fdt_set_stdout_path(dtb, "/serial@feba0000\0".as_ptr());
+    fdt_set_stdout_path(dtb, c"/serial@feba0000".as_ptr());
 
     if !config.emulated_device_list().is_empty() {
         for emu_cfg in config.emulated_device_list() {

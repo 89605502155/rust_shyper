@@ -30,7 +30,7 @@ pub fn current_cpu_arch() -> u64 {
 }
 
 pub fn get_current_cpuid() -> usize {
-    current_cpu().id as usize
+    current_cpu().id
 }
 
 /// Set the current CPU pointer.

@@ -300,8 +300,8 @@ static IDLE_THREAD: spin::Lazy<[Option<IdleThread>; PLATFORM_CPU_NUM_MAX]> = spi
     const ARRAY_REPEAT_VALUE: Option<IdleThread> = None;
     let mut idle_threads: [Option<IdleThread>; PLATFORM_CPU_NUM_MAX] = [ARRAY_REPEAT_VALUE; PLATFORM_CPU_NUM_MAX];
     for i in 0..PLATFORM_CPU_NUM_MAX {
-        let mut ctx = ContextFrame::new(idle_thread as usize, current_cpu().stack_top(), 0);
-        ctx.set_exception_pc(idle_thread as usize);
+        let mut ctx = ContextFrame::new(idle_thread as *const () as usize, current_cpu().stack_top(), 0);
+        ctx.set_exception_pc(idle_thread as *const () as usize);
         // Set the next state to jump to the S-mode
 
         #[cfg(target_arch = "riscv64")]

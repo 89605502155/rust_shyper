@@ -101,7 +101,7 @@ pub fn vmm_boot_vm(vm_id: usize) {
             if state == CpuState::CpuInv {
                 let vmpidr = vm(vm_id).unwrap().pcpuid_to_vcpuid(phys_id).unwrap();
                 info!("now start cpu on! vmpidr={vmpidr}");
-                psci_vm_maincpu_on(vmpidr, vmm_boot_vm as usize, 0, vm_id);
+                psci_vm_maincpu_on(vmpidr, vmm_boot_vm as *const () as usize, 0, vm_id);
             } else {
                 let m = IpiVmmMsg {
                     vmid: vm_id,

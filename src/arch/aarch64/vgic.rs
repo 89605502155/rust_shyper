@@ -1362,7 +1362,7 @@ impl Vgic {
                 self.set_icfgr(
                     current_cpu().active_vcpu.as_ref().unwrap(),
                     irq,
-                    bit_extract(cfg as usize, bit, 2) as u8,
+                    bit_extract(cfg, bit, 2) as u8,
                 );
                 bit += 2;
                 irq += 1;

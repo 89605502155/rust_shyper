@@ -219,6 +219,7 @@ impl PLICTrait for VPlic {
 /// * Read the value of a register (VM interface)
 /// * Write the value of a register (VM interface)
 /// * Inject an interrupt: The behavior is to set in Pending, then check Priority and Enable, Threshold, and then trigger Claim and the corresponding interrupt
+///
 /// inner function
 /// use the related functions of the PLIC structure to perform read and write operations on the related attributes
 impl VPlic {
@@ -411,7 +412,7 @@ impl VPlic {
         // In general, the Hypervisor should enable Machine-level interrupts to obtain Machine-level pending
         let mode = PLICMode::Machine;
         let vcpu = current_cpu().active_vcpu.as_ref().unwrap().id();
-        let fetched_irq = self.get_pending_irq(mode, vcpu as usize);
+        let fetched_irq = self.get_pending_irq(mode, vcpu);
         if fetched_irq != 0 {
             // Note: mode and hart are dynamicly fetched
             // inject external intr

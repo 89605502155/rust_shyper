@@ -184,12 +184,16 @@ fn init_sysregs() {
             + HCR_EL2::FMO::EnableVirtualFIQ
             + HCR_EL2::TSC::EnableTrapEl1SmcToEl2,
     );
-    VBAR_EL2.set(vectors as usize as u64);
+    VBAR_EL2.set(vectors as *const () as usize as u64);
     SCTLR_EL2.modify(SCTLR_EL2::M::Enable + SCTLR_EL2::C::Cacheable + SCTLR_EL2::I::Cacheable);
 }
 
 unsafe extern "C" fn clear_bss() {
-    core::slice::from_raw_parts_mut(_bss_begin as usize as *mut u8, _bss_end as usize - _bss_begin as usize).fill(0)
+    core::slice::from_raw_parts_mut(
+        _bss_begin as *const () as usize as *mut u8,
+        _bss_end as *const () as usize - _bss_begin as *const () as usize,
+    )
+    .fill(0)
 }
 
 unsafe extern "C" fn cache_invalidate(cache_level: usize) {

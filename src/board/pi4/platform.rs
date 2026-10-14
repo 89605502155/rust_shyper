@@ -21,10 +21,9 @@ use crate::board::SchedRule::RoundRobin;
 /// Import device-specific constants for ARM Cortex-A57
 use crate::device::ARM_CORTEX_A57;
 
-/// Allow unused imports for potential future use
+/// Import device-specific constants for NVIDIA Denver
+/// (unused for now, kept for potential future use)
 #[allow(unused_imports)]
-
-/// Import device-specific constants for ARM Cortex-A57
 use crate::device::ARM_NVIDIA_DENVER;
 
 /// Represents the platform configuration for Raspberry Pi 4

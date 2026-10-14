@@ -87,3 +87,5 @@ doc = []
 sbi_legacy = []
 plic = []
 aia = []
+# SiFive HiFive Unmatched (U740) PLIC layout, riscv64
+board_u740 = []

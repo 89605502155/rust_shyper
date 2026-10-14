@@ -440,7 +440,7 @@ pub fn psci_vm_maincpu_on(vmpidr: usize, entry: usize, ctx: usize, vm_id: usize)
     let mut r = 0;
     if state == CpuState::CpuInv {
         let mut cpu_if_list = CPU_IF_LIST.lock();
-        if let Some(cpu_if) = cpu_if_list.get_mut(cpu_idx as usize) {
+        if let Some(cpu_if) = cpu_if_list.get_mut(cpu_idx) {
             cpu_if.ctx = ctx as u64;
             cpu_if.entry = entry as u64;
             cpu_if.vm_id = vm.id();
@@ -452,7 +452,7 @@ pub fn psci_vm_maincpu_on(vmpidr: usize, entry: usize, ctx: usize, vm_id: usize)
 
         let mpidr = Platform::cpuid2mpidr(cpu_idx);
 
-        let entry_point = crate::arch::_secondary_start as usize;
+        let entry_point = crate::arch::_secondary_start as *const () as usize;
         // SAFETY:
         // It attempts to power on the CPU specified by the mpidr parameter.
         // The entry is the address of function _secondary_start.

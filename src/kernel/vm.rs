@@ -236,25 +236,22 @@ impl VmInnerConst {
                 #[cfg(target_arch = "aarch64")]
                 EmuDeviceTGicd => {
                     self.intc_type = IntCtrlType::Emulated;
-                    emu_intc_init(emu_cfg, &self.vcpu_list).map(|vgic| {
+                    emu_intc_init(emu_cfg, &self.vcpu_list).inspect(|vgic| {
                         self.arch_intc_dev = vgic.clone().into_any_arc().downcast::<Vgic>().ok();
-                        vgic
                     })
                 }
                 #[cfg(all(feature = "plic", target_arch = "riscv64"))]
                 EmuDeviceTPlic => {
                     self.intc_type = IntCtrlType::Emulated;
-                    emu_intc_init(emu_cfg, &self.vcpu_list).map(|vplic| {
+                    emu_intc_init(emu_cfg, &self.vcpu_list).inspect(|vplic| {
                         self.arch_intc_dev = vplic.clone().into_any_arc().downcast::<VPlic>().ok();
-                        vplic
                     })
                 }
                 #[cfg(all(feature = "aia", target_arch = "riscv64"))]
                 EmuDeviceTAPlic => {
                     self.intc_type = IntCtrlType::Emulated;
-                    emu_intc_init(emu_cfg, &self.vcpu_list).map(|vaplic| {
+                    emu_intc_init(emu_cfg, &self.vcpu_list).inspect(|vaplic| {
                         self.arch_intc_dev = vaplic.clone().into_any_arc().downcast::<VAPlic>().ok();
-                        vaplic
                     })
                 }
                 #[cfg(feature = "gicv3")]
@@ -591,9 +588,10 @@ impl Vm {
     pub fn vcpu_to_pcpu_mask(&self, mask: usize, len: usize) -> usize {
         let mut pmask = 0;
         for i in 0..len {
-            let shift = self.vcpuid_to_pcpuid(i);
-            if mask & (1 << i) != 0 && shift.is_ok() {
-                pmask |= 1 << shift.unwrap();
+            if mask & (1 << i) != 0 {
+                if let Ok(shift) = self.vcpuid_to_pcpuid(i) {
+                    pmask |= 1 << shift;
+                }
             }
         }
         pmask
@@ -602,9 +600,10 @@ impl Vm {
     pub fn pcpu_to_vcpu_mask(&self, mask: usize, len: usize) -> usize {
         let mut pmask = 0;
         for i in 0..len {
-            let shift = self.pcpuid_to_vcpuid(i);
-            if mask & (1 << i) != 0 && shift.is_ok() {
-                pmask |= 1 << shift.unwrap();
+            if mask & (1 << i) != 0 {
+                if let Ok(shift) = self.pcpuid_to_vcpuid(i) {
+                    pmask |= 1 << shift;
+                }
             }
         }
         pmask

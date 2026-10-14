@@ -33,15 +33,14 @@ static HEAP_ALLOCATOR: LockedHeapWithRescue<32> = LockedHeapWithRescue::new(heap
 pub fn heap_init() {
     // SAFEFY:
     // HEAP_REGION is aligned and HEAP_SIZE is a multiple of PAGE_SIZE
+    let heap_start = core::ptr::addr_of_mut!(HEAP_REGION) as usize;
+    println!(
+        "init buddy system, heap start from {:x} with size {} MB",
+        heap_start,
+        HEAP_SIZE / (1024 * 1024)
+    );
     unsafe {
-        println!(
-            "init buddy system, heap start from {:x} with size {} MB",
-            HEAP_REGION.0.as_mut_ptr() as usize,
-            HEAP_SIZE / (1024 * 1024)
-        );
-        HEAP_ALLOCATOR
-            .lock()
-            .init(HEAP_REGION.0.as_mut_ptr() as usize, HEAP_SIZE);
+        HEAP_ALLOCATOR.lock().init(heap_start, HEAP_SIZE);
     }
 }
 
@@ -52,7 +51,7 @@ fn heap_rescue(heap: &mut Heap<32>, layout: &core::alloc::Layout) {
         // The new heap range is valid and not overlap with the old one.
         unsafe {
             heap.add_to_heap(
-                round_up(_image_end as usize, PAGE_SIZE),
+                round_up(_image_end as *const () as usize, PAGE_SIZE),
                 PLAT_DESC.mem_desc.regions[0].size + PLAT_DESC.mem_desc.regions[0].base,
             );
         }

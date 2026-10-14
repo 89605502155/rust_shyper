@@ -190,7 +190,7 @@ fn next_tag(b: &[u8], start: usize) -> FdtResult<(u32, usize)> {
 }
 
 fn check_tag_offset(b: &[u8], offset: i32, want: u32) -> FdtResult<usize> {
-    if offset < 0 || offset as usize % TAG_SIZE != 0 {
+    if offset < 0 || !(offset as usize).is_multiple_of(TAG_SIZE) {
         return err(FDT_ERR_BADOFFSET);
     }
     match next_tag(b, offset as usize) {
@@ -846,7 +846,7 @@ mod tests {
         let name = |st: &mut Vec<u8>, n: &[u8]| {
             st.extend_from_slice(n);
             st.push(0);
-            while st.len() % 4 != 0 {
+            while !st.len().is_multiple_of(4) {
                 st.push(0);
             }
         };

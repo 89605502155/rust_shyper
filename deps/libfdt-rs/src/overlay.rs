@@ -321,7 +321,7 @@ mod tests {
     fn build(root: &Node, extra: usize) -> Vec<u8> {
         fn emit(n: &Node, st: &mut Vec<u8>, strs: &mut Vec<u8>) {
             let pad = |st: &mut Vec<u8>| {
-                while st.len() % 4 != 0 {
+                while !st.len().is_multiple_of(4) {
                     st.push(0)
                 }
             };

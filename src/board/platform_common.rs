@@ -125,7 +125,11 @@ pub trait PlatOperation {
                 // Entry is a valid address with executable permission.
                 // The 'i' is a valid cpu_idx for ctx.
                 unsafe {
-                    Self::cpu_on(PLAT_DESC.cpu_desc.core_list[i].mpidr, _secondary_start as usize, i);
+                    Self::cpu_on(
+                        PLAT_DESC.cpu_desc.core_list[i].mpidr,
+                        _secondary_start as *const () as usize,
+                        i,
+                    );
                 }
             }
         }

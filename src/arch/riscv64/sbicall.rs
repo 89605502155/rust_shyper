@@ -123,7 +123,7 @@ fn get_pcpu_ids(vm: &Vm, hart_mask: HartMask) -> (Vec<usize>, bool) {
 // If an error occurs (for example, the vcpu core number exceeds the number of Vcpus on the vm), return an empty HartMask
 #[inline(always)]
 fn vcpu_hart_mask_to_pcpu_mask(hart_mask: HartMask) -> HartMask {
-    let (pcpus, valid) = get_pcpu_ids(&active_vm().unwrap(), hart_mask.clone());
+    let (pcpus, valid) = get_pcpu_ids(&active_vm().unwrap(), hart_mask);
     if valid {
         let mut mask: usize = 0;
         for pcpu in pcpus {

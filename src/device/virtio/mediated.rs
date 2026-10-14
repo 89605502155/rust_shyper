@@ -14,8 +14,8 @@ use spin::Mutex;
 
 use crate::device::{virtio_blk_notify_handler, VIRTIO_BLK_T_IN, VIRTIO_BLK_T_OUT};
 use crate::kernel::{
-    active_vm, async_task_exe, AsyncTaskState, finish_async_task, hvc_send_msg_to_vm, HvcDefaultMsg, HvcGuestMsg,
-    IpiInnerMsg, set_front_io_task_state, vm_ipa2pa, vm_list_walker,
+    active_vm, async_task_exe, AsyncTaskState, hvc_send_msg_to_vm, HvcDefaultMsg, HvcGuestMsg, IpiInnerMsg,
+    set_front_io_task_state, vm_ipa2pa, vm_list_walker,
 };
 use crate::kernel::IpiMessage;
 

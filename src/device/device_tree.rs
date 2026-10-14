@@ -77,36 +77,36 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         let r = fdt_del_mem_rsv(dtb, 0);
         assert_eq!(r, 0);
         fdt_clear_initrd(dtb);
-        let r = fdt_remove_node(dtb, "/cpus/cpu-map/cluster0/core0\0".as_ptr());
+        let r = fdt_remove_node(dtb, c"/cpus/cpu-map/cluster0/core0".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_remove_node(dtb, "/cpus/cpu-map/cluster0/core1\0".as_ptr());
+        let r = fdt_remove_node(dtb, c"/cpus/cpu-map/cluster0/core1".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/cpus/cpu@0\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/cpus/cpu@0".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/cpus/cpu@1\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/cpus/cpu@1".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/sdhci@3460000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/sdhci@3460000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/sdhci@3440000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/sdhci@3440000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/serial@c280000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/serial@c280000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/serial@3110000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/serial@3110000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/serial@3130000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/serial@3130000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/combined-uart\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/combined-uart".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/trusty\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/trusty".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/host1x/nvdisplay@15210000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/host1x/nvdisplay@15210000".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/reserved-memory/ramoops_carveout\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/reserved-memory/ramoops_carveout".as_ptr());
         assert_eq!(r, 0);
-        let r = fdt_disable_node(dtb, "/watchdog@30c0000\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/watchdog@30c0000".as_ptr());
         assert_eq!(r, 0);
         // disable denver pmu
-        let r = fdt_disable_node(dtb, "/denver-pmu\0".as_ptr());
+        let r = fdt_disable_node(dtb, c"/denver-pmu".as_ptr());
         assert_eq!(r, 0);
         // modify arm pmu
         // Hardcode: here, irq and affi are associated with clurster 1, cpu 0
@@ -114,7 +114,7 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         let affi: [u32; 1] = [0x4];
         let r = fdt_setup_pmu(
             dtb,
-            "arm,armv8-pmuv3\0".as_ptr(),
+            c"arm,armv8-pmuv3".as_ptr(),
             irq.as_ptr(),
             irq.len() as u32,
             affi.as_ptr(),
@@ -142,54 +142,54 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         fdt_pack(dtb);
         fdt_enlarge(dtb);
         fdt_clear_initrd(dtb);
-        // assert_eq!(fdt_disable_node(dtb, "/platform@c000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/flash@0\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/fw-cfg@9020000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/memory@40000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000200\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000400\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000600\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000800\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000a00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000c00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a000e00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001200\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001400\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001600\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001800\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001a00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001c00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a001e00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002200\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002400\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002600\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002800\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002a00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002c00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a002e00\0".as_ptr()), 0);
+        // assert_eq!(fdt_disable_node(dtb, c"/platform@c000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/flash@0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/fw-cfg@9020000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/memory@40000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000200".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000400".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000600".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000800".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000a00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000c00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a000e00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001200".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001400".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001600".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001800".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001a00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001c00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a001e00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002200".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002400".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002600".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002800".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002a00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002c00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a002e00".as_ptr()), 0);
         // keep a003000 & a003200 for passthrough blk/net
-        // assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003000\0".as_ptr()), 0);
-        // assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003200\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003400\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003600\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003800\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003a00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003c00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/virtio_mmio@a003e00\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/gpio-keys\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/pl061@9030000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/pcie@10000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/pl031@9010000\0".as_ptr()), 0);
+        // assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003000".as_ptr()), 0);
+        // assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003200".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003400".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003600".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003800".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003a00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003c00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/virtio_mmio@a003e00".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/gpio-keys".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/pl061@9030000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/pcie@10000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/pl031@9010000".as_ptr()), 0);
         // pass through the only one uart on qemu-system-aarch64
-        // assert_eq!(fdt_remove_node(dtb, "/pl011@9000000\0".as_ptr()), 0);
+        // assert_eq!(fdt_remove_node(dtb, c"/pl011@9000000".as_ptr()), 0);
         #[cfg(feature = "gicv3")]
-        assert_eq!(fdt_remove_node(dtb, "/intc@8000000/its@8080000\0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/intc@8000000/its@8080000".as_ptr()), 0);
         #[cfg(not(feature = "gicv3"))]
-        assert_eq!(fdt_remove_node(dtb, "/intc@8000000/v2m@8020000\0".as_ptr()), 0);
-        //assert_eq!(fdt_remove_node(dtb, "/flash@0\0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/intc@8000000/v2m@8020000".as_ptr()), 0);
+        //assert_eq!(fdt_remove_node(dtb, c"/flash@0".as_ptr()), 0);
 
         let len = fdt_size(dtb) as usize;
         info!("fdt patched size {}", len);
@@ -202,30 +202,30 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         fdt_pack(dtb);
         fdt_enlarge(dtb);
         fdt_clear_initrd(dtb);
-        // assert_eq!(fdt_remove_node(dtb, "/soc/plic@c000000\0".as_ptr()), 0);
+        // assert_eq!(fdt_remove_node(dtb, c"/soc/plic@c000000".as_ptr()), 0);
         // Note: OpenSBI protects the CLINT owning area with PMP, allowing only M-mode read and write,
         // but not S-mode or U-mode read and write
         // 0x0000000002000000-0x000000000200ffff M: (I,R,W) S/U: ()
 
         // TODO: Emulate CLINT
-        assert_eq!(fdt_remove_node(dtb, "/soc/clint@2000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/poweroff\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/reboot\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/platform-bus@4000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/pmu\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/fw-cfg@10100000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/flash@20000000\0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/soc/clint@2000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/poweroff".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/reboot".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/platform-bus@4000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/pmu".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/fw-cfg@10100000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/flash@20000000".as_ptr()), 0);
         // Delete the previous memory and edit it again later
-        assert_eq!(fdt_remove_node(dtb, "/memory@80000000\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/reserved-memory\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/soc/pci@30000000\0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/memory@80000000".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/reserved-memory".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/soc/pci@30000000".as_ptr()), 0);
 
         // modify the isa given by fdt
         let str_len: i32 = 0;
         let pstr: *mut myctypes::c_char = fdt_get_property_string(
             dtb,
-            "/cpus/cpu@0\0".as_ptr(),
-            "riscv,isa\0".as_ptr(),
+            c"/cpus/cpu@0".as_ptr(),
+            c"riscv,isa".as_ptr(),
             &str_len as *const myctypes::c_int as *mut myctypes::c_int,
         );
         assert_ne!(pstr as u64, 0);
@@ -236,25 +236,25 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         let isa = remove_riscv_ext(isa, String::from("zicboz"));
         let isa = remove_riscv_ext(isa, String::from("sstc"));
         info!("modified riscv isa = {}", isa);
-        let node = fdt_find_node(dtb, "/cpus/cpu@0\0".as_ptr());
+        let node = fdt_find_node(dtb, c"/cpus/cpu@0".as_ptr());
         fdt_add_property_string(
             dtb,
             node,
-            "riscv,isa\0".as_ptr(),
+            c"riscv,isa".as_ptr(),
             (isa.as_str().to_owned() + "\0").as_ptr(),
         );
 
         // Delete unused hart of MVM (MVM only owns hart 0)
-        assert_eq!(fdt_remove_node(dtb, "/cpus/cpu@1\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/cpus/cpu@2\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/cpus/cpu@3\0".as_ptr()), 0);
-        assert_eq!(fdt_remove_node(dtb, "/cpus/cpu-map\0".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/cpus/cpu@1".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/cpus/cpu@2".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/cpus/cpu@3".as_ptr()), 0);
+        assert_eq!(fdt_remove_node(dtb, c"/cpus/cpu-map".as_ptr()), 0);
 
         // Delete unused nodes in the AIA Device Tree
         #[cfg(feature = "aia")]
         {
-            assert_eq!(fdt_remove_node(dtb, "/soc/aplic@c000000\0".as_ptr()), 0);
-            assert_eq!(fdt_remove_node(dtb, "/soc/imsics@24000000\0".as_ptr()), 0);
+            assert_eq!(fdt_remove_node(dtb, c"/soc/aplic@c000000".as_ptr()), 0);
+            assert_eq!(fdt_remove_node(dtb, c"/soc/imsics@24000000".as_ptr()), 0);
         }
 
         let len = fdt_size(dtb) as usize;
@@ -779,6 +779,8 @@ fn create_virtio_node_riscv64(
     address: usize,
     plic_phandle: u32,
 ) -> FdtWriterResult<()> {
+    #[cfg(not(any(feature = "plic", feature = "aia")))]
+    let _ = irq;
     let virtio = fdt.begin_node(name)?;
     #[cfg(feature = "plic")]
     fdt.property_array_u32("interrupts", &[irq as u32])?;

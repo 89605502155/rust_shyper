@@ -1,4 +1,3 @@
-use crate::alloc::string::ToString;
 use crate::{csrr, csrw};
 /* AIA Extension */
 pub const CSR_VSISELECT: usize = 0x250;
@@ -59,9 +58,8 @@ fn imsic_num_bits(count: u32) -> u32 {
 
 pub fn imsic_trigger(hart: u32, guest: u32, eiid: u32) {
     let mut aia_guests: u32 = 3;
-    // get the value of aia-guests from environment variables
-    let arg = env!("AIA_GUESTS").to_string();
-    match arg.parse::<u32>() {
+    // the number of AIA guest interrupt files, set by build.rs
+    match env!("AIA_GUESTS").parse::<u32>() {
         Ok(num) => aia_guests = num,
         Err(e) => warn!("Failed to parse: {}", e),
     }

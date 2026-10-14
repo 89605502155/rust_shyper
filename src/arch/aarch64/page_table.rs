@@ -551,7 +551,7 @@ impl PageTable {
     /// map a range of ipa to a range of physical space, using 4kb or 2mb page depending on the alignment of ipa, len and pa
     pub fn pt_map_range(&self, ipa: usize, len: usize, pa: usize, pte: usize, map_block: bool) {
         let size_2mb = 1 << LVL2_SHIFT;
-        if ipa % size_2mb == 0 && len % size_2mb == 0 && pa % size_2mb == 0 && map_block {
+        if ipa.is_multiple_of(size_2mb) && len.is_multiple_of(size_2mb) && pa.is_multiple_of(size_2mb) && map_block {
             self.map_range_2mb(ipa, len, pa, pte);
         } else {
             self.map_range(ipa, len, pa, pte);
@@ -561,7 +561,7 @@ impl PageTable {
     /// unmap a range of ipa, using 4kb or 2mb page depending on the alignment of ipa and len
     pub fn pt_unmap_range(&self, ipa: usize, len: usize, map_block: bool) {
         let size_2mb = 1 << LVL2_SHIFT;
-        if ipa % size_2mb == 0 && len % size_2mb == 0 && map_block {
+        if ipa.is_multiple_of(size_2mb) && len.is_multiple_of(size_2mb) && map_block {
             self.unmap_range_2mb(ipa, len);
         } else {
             self.unmap_range(ipa, len);

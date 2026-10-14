@@ -35,7 +35,6 @@ pub const PLIC_THRESHOLD_CLAIM_END: usize = 0x3f_ffff;
 /// * Set enable information
 /// * Set priority information
 /// * Set threshold information
-
 pub trait PLICTrait {
     fn get_priority(&self, irq: usize) -> usize;
     fn set_priority(&self, irq: usize, priority: usize);
