@@ -1,0 +1,43 @@
+// The virtual machines that run on trosna-shyper.
+
+// Management VM (VM 0): Linux started with the hypervisor, owns most devices.
+def node Mvm:
+  port hvc          // issues hypercalls through its kernel module
+  port irq          // takes virtual interrupts
+  port blk_service  // serves mediated block requests of guests
+  port boot         // gets its device tree at boot
+
+  // Prebuilt Linux module behind /dev/shyper, turns ioctls into hypercalls.
+  def node ShyperKo:
+    port ioctl
+    port hvc
+  // The Rust management tool: configures, boots and stops guest VMs.
+  def node Cli:
+    port ioctl
+  // CLI daemon: serves mediated disks from image files or block devices.
+  def node Daemon:
+    port blk_service
+    port ioctl
+
+// A guest VM (VM 1 and up): Linux on its own cores, virtio devices only.
+def node Gvm:
+  port mmio  // accesses emulated virtio devices
+  port irq   // takes virtual interrupts
+  port boot  // gets its device tree at boot
+
+// An ioctl on /dev/shyper.
+def node Ioctl
+Data type_of Ioctl
+def conn ctl := * ->Ioctl *
+
+Service type_of Mvm
+Service type_of Gvm
+Service type_of Mvm.Cli
+Service type_of Mvm.Daemon
+Service type_of Mvm.ShyperKo
+
+open Mvm:
+  hvc = ShyperKo.hvc
+  blk_service = Daemon.blk_service
+  Cli.ioctl ctl ShyperKo.ioctl
+  Daemon.ioctl ctl ShyperKo.ioctl

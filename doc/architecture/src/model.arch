@@ -1,0 +1,101 @@
+// trosna-shyper: a type-1 hypervisor in Rust (AArch64 / RISC-V), recovered
+// from the code of the `hv` member. The hypervisor runs at EL2, under it
+// there is only the hardware; above it the MVM and the guest VMs.
+
+import vms (Mvm, Gvm)
+
+// Payloads that cross the VM / hypervisor boundary.
+
+def node Hypercall    // HVC from the MVM kernel module: fid, event and arguments
+def node VmConfigArg  // one piece of a guest VM configuration sent by hypercall
+def node ImageChunk   // part of a guest kernel image or device tree, in a shared huge page
+def node BlkRequest   // virtio block request of a guest, forwarded to the MVM
+def node GuestIrq     // a virtual interrupt injected into a VM
+def node MmioAccess   // a trapped guest access to an emulated device
+def node Dtb          // a flattened device tree blob given to a VM at boot
+
+Data type_of Hypercall
+Data type_of VmConfigArg
+Data type_of ImageChunk
+Data type_of BlkRequest
+Data type_of GuestIrq
+Data type_of MmioAccess
+Data type_of Dtb
+
+def conn hvc := * ->Hypercall *
+def conn trap := * ->MmioAccess *
+def conn irq := * ->GuestIrq *
+def conn notify := * ->BlkRequest *
+def conn load := * ->Dtb *
+
+// The bare-metal hypervisor image, booted by firmware or QEMU at EL2.
+def node Hypervisor:
+  port hypercall   // receives hypercalls from VMs
+  port guest_trap  // receives trapped guest MMIO accesses
+  port inject      // delivers virtual interrupts to VMs
+  port blk_notify  // signals mediated block requests to the MVM
+  port boot_dtb    // hands the device tree to a VM at boot
+
+  // Entry code: stack, MMU, exception vectors, secondary cores.
+  def node Boot
+  // Physical CPUs, vCPU contexts and the round-robin scheduler.
+  def node Kernel:
+    port hypercall
+  // Virtual GIC: list registers, virtual distributor, HW interrupts.
+  def node Vgic:
+    port inject
+  // Stage-2 page tables isolating VM memory.
+  def node Stage2
+  // Emulated devices: virtio-mmio block, net, console, mediated disks.
+  def node DeviceEmu:
+    port trap
+    port blk_notify
+  // VM manager: creation, boot, shutdown and removal of VMs.
+  def node Vmm:
+    port boot_dtb
+  // Board descriptions and the MVM configuration.
+  def node Config
+  // Pure Rust device tree editing (port of libfdt) and generation.
+  def node Fdt
+  // The MVM kernel image, embedded at build time.
+  def node MvmImage
+
+Service type_of Hypervisor
+Service type_of Hypervisor.Kernel
+Service type_of Hypervisor.Vgic
+Service type_of Hypervisor.DeviceEmu
+Service type_of Hypervisor.Vmm
+Function type_of Hypervisor.Fdt
+Storage type_of Hypervisor.Stage2
+Storage type_of Hypervisor.Config
+Storage type_of Hypervisor.MvmImage
+
+// A component relies on another one to do its work.
+def rel uses := * -> *
+
+open Hypervisor:
+  hypercall = Kernel.hypercall
+  inject = Vgic.inject
+  guest_trap = DeviceEmu.trap
+  blk_notify = DeviceEmu.blk_notify
+  boot_dtb = Vmm.boot_dtb
+
+Mvm.hvc hvc Hypervisor.hypercall
+Gvm.mmio trap Hypervisor.guest_trap
+Hypervisor.inject irq Gvm.irq
+Hypervisor.inject irq Mvm.irq
+Hypervisor.blk_notify notify Mvm.blk_service
+Hypervisor.boot_dtb load Mvm.boot
+Hypervisor.boot_dtb load Gvm.boot
+
+Hypervisor.Boot uses Hypervisor.Stage2
+Hypervisor.Boot uses Hypervisor.Kernel
+Hypervisor.Kernel uses Hypervisor.Vmm
+Hypervisor.Kernel uses Hypervisor.Vgic
+Hypervisor.Kernel uses Hypervisor.DeviceEmu
+Hypervisor.Vmm uses Hypervisor.Config
+Hypervisor.Vmm uses Hypervisor.Fdt
+Hypervisor.Vmm uses Hypervisor.Stage2
+Hypervisor.Vmm uses Hypervisor.MvmImage
+Hypervisor.DeviceEmu uses Hypervisor.Vgic
+Hypervisor.DeviceEmu uses Hypervisor.Stage2
