@@ -251,8 +251,7 @@ cd /root/gvm
 ```sh
 /root/shyper vm list               # ВМ и их состояние
 /root/shyper vm reboot 1 [-f]      # перезагрузить гостя
-/root/shyper vm shutdown 1 [-f]    # остановить гостя
-/root/shyper vm remove 1           # удалить остановленного гостя
+/root/shyper vm remove 1           # остановить и удалить гостя (вместе с конфигурацией)
 /root/shyper vm delconfig 1        # удалить конфигурацию, которая не запускалась
 ```
 
@@ -303,6 +302,7 @@ cd /root/gvm
 | `EMU_DEVICE_T_GICD`, `EMU_DEVICE_T_GICR` | виртуальный дистрибьютор / редистрибьютор GIC | – |
 | `EMU_DEVICE_T_PLIC`, `EMU_DEVICE_T_APLIC` | виртуальный контроллер прерываний (RISC-V) | – |
 | `EMU_DEVICE_T_VIRTIO_BLK_MEDIATED` | блочное virtio-устройство, обслуживаемое демоном MVM | `[номер диска, размер в секторах]` |
+| `EMU_DEVICE_T_VIRTIO_BLK` | блочное virtio-устройство без бэкенда: не поддерживается, запросы отбрасываются с предупреждением | – |
 | `EMU_DEVICE_T_VIRTIO_NET` | сетевое virtio-устройство, коммутацию между ВМ выполняет гипервизор | MAC-адрес, 6 байт |
 | `EMU_DEVICE_T_VIRTIO_CONSOLE` | virtio-консоль, соединённая с другой ВМ | `[id ВМ-партнёра, адрес её консоли]` |
 
@@ -323,15 +323,14 @@ shyper system daemon [mediated.json]   запустить демон (опоср
 shyper system insmod [shyper.ko]       загрузить модуль ядра (kmod не нужен)
 shyper system reboot [-f]              перезагрузить гипервизор
 shyper system shutdown [-f]            выключить гипервизор
-shyper system update <образ>           горячее обновление (в QEMU не поддерживается)
+shyper system update <образ>           горячее обновление (в trosna-shyper пока не поддерживается)
 shyper system test                     тестовый гипервызов
 shyper vm config <vm.json>             добавить ВМ, выводит её id
 shyper vm boot <id>                    запустить ВМ
 shyper vm console [/dev/hvc0]          подключиться к консоли гостя, Ctrl-] — выход
 shyper vm list                         список ВМ
 shyper vm reboot <id> [-f]             перезагрузить ВМ
-shyper vm shutdown <id> [-f]           остановить ВМ
-shyper vm remove <id>                  удалить ВМ
+shyper vm remove <id>                  остановить и удалить ВМ
 shyper vm delconfig <id>               удалить конфигурацию ВМ
 shyper vm getvmid                      id ВМ, в которой выполняется команда
 ```
@@ -455,11 +454,15 @@ trosna-shyper обходит это только для платы `qemu`: та�
   - неопределённое поведение в CLI: висячий указатель, строки без
     завершающего нуля, запись в неизменяемую переменную;
   - нулевая ссылка на входе гипервизора;
+  - гонка в исполнителе асинхронных задач: гипервизор падал, когда запрос
+    гостя к диску обрабатывался на двух ядрах одновременно;
+  - нереализованные гипервызовы и запросы к неопосредованному диску
+    роняли гипервизор паникой, теперь они возвращают ошибку;
   - libfdt оставлял неинициализированные данные в буферах;
   - под QEMU MVM случайно останавливалась при загрузке (терялось
     прерывание таймера гостя, см. раздел 14).
 - **Новое:**
-  - `vm shutdown`, `vm delconfig`, `vm console`, `system insmod` в CLI;
+  - `vm delconfig`, `vm console`, `system insmod` в CLI;
   - диск MVM с готовым гостем (`tools/mkrootfs.sh`);
   - `tools/check.sh`.
 - **Чистый код:** `clippy` и `rustfmt` не выдают предупреждений ни для

@@ -16,7 +16,7 @@ use crate::{
     dev::Shyper,
     hvc::{
         generate_hvc_mode, HVC_VMM, HVC_VMM_BOOT_VM, HVC_VMM_GET_VM_ID, HVC_VMM_LIST_VM, HVC_VMM_REBOOT_VM,
-        HVC_VMM_SHUTDOWN_VM, HVC_VMM_VM_REMOVE,
+        HVC_VMM_VM_REMOVE,
     },
     util::cstr_arr_to_string,
 };
@@ -79,10 +79,6 @@ fn force_arg(force: bool, vm_id: u32) -> u64 {
 
 pub fn vmm_boot(vm_id: u32) {
     vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_BOOT_VM), vm_id as u64);
-}
-
-pub fn vmm_shutdown(force: bool, vm_id: u32) {
-    vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_SHUTDOWN_VM), force_arg(force, vm_id));
 }
 
 pub fn vmm_reboot(force: bool, vm_id: u32) {

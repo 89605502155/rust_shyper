@@ -251,8 +251,7 @@ MVM). It switches the device and your terminal to raw mode.
 ```sh
 /root/shyper vm list               # VMs and their state
 /root/shyper vm reboot 1 [-f]      # reboot a guest
-/root/shyper vm shutdown 1 [-f]    # stop a guest
-/root/shyper vm remove 1           # remove a stopped guest
+/root/shyper vm remove 1           # stop and remove a guest (its configuration too)
 /root/shyper vm delconfig 1        # drop a configuration that was not booted
 ```
 
@@ -303,6 +302,7 @@ Emulated device types (`type`), with `cfg_list` where it matters:
 | `EMU_DEVICE_T_GICD`, `EMU_DEVICE_T_GICR` | virtual GIC distributor / redistributor | – |
 | `EMU_DEVICE_T_PLIC`, `EMU_DEVICE_T_APLIC` | virtual interrupt controller (RISC-V) | – |
 | `EMU_DEVICE_T_VIRTIO_BLK_MEDIATED` | virtio block, served by the MVM daemon | `[disk index, size in sectors]` |
+| `EMU_DEVICE_T_VIRTIO_BLK` | virtio block without a backend: not supported, its requests are dropped with a warning | – |
 | `EMU_DEVICE_T_VIRTIO_NET` | virtio network, switched between VMs by the hypervisor | MAC address, 6 bytes |
 | `EMU_DEVICE_T_VIRTIO_CONSOLE` | virtio console connected to another VM | `[peer VM id, peer console address]` |
 
@@ -323,15 +323,14 @@ shyper system daemon [mediated.json]   start the daemon (mediated disks, image u
 shyper system insmod [shyper.ko]       load the kernel module (no kmod needed)
 shyper system reboot [-f]              reboot the hypervisor
 shyper system shutdown [-f]            shut the hypervisor down
-shyper system update <image>           live update (not supported on QEMU)
+shyper system update <image>           live update (not supported by trosna-shyper yet)
 shyper system test                     test hypercall
 shyper vm config <vm.json>             add a VM, prints its id
 shyper vm boot <id>                    start a VM
 shyper vm console [/dev/hvc0]          attach to a guest console, Ctrl-] leaves
 shyper vm list                         list VMs
 shyper vm reboot <id> [-f]             reboot a VM
-shyper vm shutdown <id> [-f]           stop a VM
-shyper vm remove <id>                  remove a VM
+shyper vm remove <id>                  stop and remove a VM
 shyper vm delconfig <id>               remove the configuration of a VM
 shyper vm getvmid                      id of the VM the command runs in
 ```
@@ -452,11 +451,15 @@ Compared with upstream commit `62a2053`:
   - undefined behavior in the CLI: dangling pointer, unterminated strings,
     write to an immutable value;
   - a null reference at the hypervisor entry;
+  - a race in the asynchronous task executor that panicked the hypervisor
+    when a guest disk request was handled on two cores at once;
+  - unimplemented hypercalls and non-mediated disk requests panicked the
+    hypervisor; they now return an error;
   - libfdt left uninitialized data in buffers;
   - the MVM randomly stopped during boot under QEMU (a lost guest timer
     interrupt, see section 14).
 - **New:**
-  - `vm shutdown`, `vm delconfig`, `vm console` and `system insmod` in the CLI;
+  - `vm delconfig`, `vm console` and `system insmod` in the CLI;
   - an MVM disk with a ready guest (`tools/mkrootfs.sh`);
   - `tools/check.sh`.
 - **Clean code:** `clippy` and `rustfmt` report no warnings on all boards.

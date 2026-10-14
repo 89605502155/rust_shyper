@@ -26,7 +26,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use daemon::{config_daemon, init_daemon};
 use log::error;
 use sys::{sys_insmod, sys_reboot, sys_shutdown, sys_test, sys_update};
-use vmm::{vmm_boot, vmm_getvmid, vmm_list_vm_info, vmm_reboot, vmm_remove, vmm_shutdown};
+use vmm::{vmm_boot, vmm_getvmid, vmm_list_vm_info, vmm_reboot, vmm_remove};
 
 use crate::config::{config_add_vm, config_delete_vm};
 
@@ -101,12 +101,6 @@ enum VmSubCmd {
         #[arg(short, long)]
         force: bool,
     },
-    Shutdown {
-        vmid: u32,
-        /// A force flag to set.
-        #[arg(short, long)]
-        force: bool,
-    },
     Remove {
         vmid: u32,
     },
@@ -171,7 +165,6 @@ fn exec_vm_cmd(subcmd: VmSubCmd) {
         VmSubCmd::List {} => vmm_list_vm_info(),
         VmSubCmd::Boot { vmid, display: _ } => vmm_boot(vmid),
         VmSubCmd::Reboot { vmid, force } => vmm_reboot(force, vmid),
-        VmSubCmd::Shutdown { vmid, force } => vmm_shutdown(force, vmid),
         VmSubCmd::Remove { vmid } => vmm_remove(vmid),
         VmSubCmd::Getdefconfig { vmid: _ } => error!("getdefconfig is not supported yet"),
         VmSubCmd::Config { config } => {
