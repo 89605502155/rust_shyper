@@ -15,3 +15,7 @@ serde = { version = "1.0.201", features = ["derive"] }
 serde_json = "1.0.117"
 signal-hook = "0.3.17"
 
+
+[features]
+# unikernel library OS support of the hypervisor
+unilib = []

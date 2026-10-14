@@ -147,11 +147,6 @@ impl HugeBuf {
         self.ptr.as_ptr() as u64
     }
 
-    pub fn as_slice(&self) -> &[u8] {
-        // SAFETY: the mapping is `len` bytes long and lives as long as `self`.
-        unsafe { std::slice::from_raw_parts(self.ptr.as_ptr(), self.len) }
-    }
-
     pub fn as_mut_slice(&mut self) -> &mut [u8] {
         // SAFETY: as above, and `&mut self` makes the access exclusive.
         unsafe { std::slice::from_raw_parts_mut(self.ptr.as_ptr(), self.len) }

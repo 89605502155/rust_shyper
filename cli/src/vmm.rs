@@ -12,7 +12,14 @@ use std::mem;
 
 use log::{error, info};
 
-use crate::{dev::Shyper, util::cstr_arr_to_string};
+use crate::{
+    dev::Shyper,
+    hvc::{
+        generate_hvc_mode, HVC_VMM, HVC_VMM_BOOT_VM, HVC_VMM_GET_VM_ID, HVC_VMM_LIST_VM, HVC_VMM_REBOOT_VM,
+        HVC_VMM_SHUTDOWN_VM, HVC_VMM_VM_REMOVE,
+    },
+    util::cstr_arr_to_string,
+};
 
 pub const NAME_MAX_LEN: usize = 32;
 const VM_NUM_MAX: usize = 16;
@@ -71,25 +78,27 @@ fn force_arg(force: bool, vm_id: u32) -> u64 {
 }
 
 pub fn vmm_boot(vm_id: u32) {
-    vmm_ioctl(0x0102, vm_id as u64);
+    vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_BOOT_VM), vm_id as u64);
 }
 
 pub fn vmm_shutdown(force: bool, vm_id: u32) {
-    vmm_ioctl(0x0103, force_arg(force, vm_id));
+    vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_SHUTDOWN_VM), force_arg(force, vm_id));
 }
 
 pub fn vmm_reboot(force: bool, vm_id: u32) {
-    vmm_ioctl(0x0104, force_arg(force, vm_id));
+    vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_REBOOT_VM), force_arg(force, vm_id));
 }
 
 pub fn vmm_remove(vm_id: u32) {
-    vmm_ioctl(0x0110, vm_id as u64);
+    vmm_ioctl(generate_hvc_mode(HVC_VMM, HVC_VMM_VM_REMOVE), vm_id as u64);
 }
 
 pub fn vmm_getvmid() {
     let mut id: u32 = 0;
     // SAFETY: the module writes the VM id as a u32.
-    match Shyper::open().and_then(|dev| unsafe { dev.ioctl_ref(0x0108, &mut id) }) {
+    match Shyper::open()
+        .and_then(|dev| unsafe { dev.ioctl_ref(generate_hvc_mode(HVC_VMM, HVC_VMM_GET_VM_ID), &mut id) })
+    {
         Ok(()) => info!("Current VM id is {}", id),
         Err(err) => error!("err: ioctl fail: {}", err),
     }
@@ -104,7 +113,9 @@ pub fn vmm_list_vm_info() {
         _pad: [0; VM_PAGE_SIZE - mem::size_of::<VMInfoList>()],
     });
     // SAFETY: the module fills one page with a `VMInfoList`.
-    match Shyper::open().and_then(|dev| unsafe { dev.ioctl_ref(0x0100, &mut *buf) }) {
+    match Shyper::open()
+        .and_then(|dev| unsafe { dev.ioctl_ref(generate_hvc_mode(HVC_VMM, HVC_VMM_LIST_VM), &mut *buf) })
+    {
         Ok(()) => display_vm_list_info(&buf.list),
         Err(err) => error!("err: ioctl fail: {}", err),
     }

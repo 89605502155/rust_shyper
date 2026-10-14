@@ -44,19 +44,19 @@ pub fn check_cache_address(cache: &mut [u8]) -> Result<(), String> {
 
 pub fn string_to_u64(s: String) -> Result<u64, String> {
     let s = s.trim().to_string();
-    if s.starts_with("0x") {
-        match u64::from_str_radix(&s[2..], 16) {
+    if let Some(hex) = s.strip_prefix("0x") {
+        match u64::from_str_radix(hex, 16) {
             Ok(num) => Ok(num),
             Err(_) => Err(format!("Not hex string: {}", s)),
         }
-    } else if s.starts_with("0b") {
-        match u64::from_str_radix(&s[2..], 2) {
+    } else if let Some(bin) = s.strip_prefix("0b") {
+        match u64::from_str_radix(bin, 2) {
             Ok(num) => Ok(num),
             Err(_) => Err(format!("Not binary string: {}", s)),
         }
     } else {
         // must be decimal
-        match u64::from_str_radix(&s, 10) {
+        match s.parse::<u64>() {
             Ok(num) => Ok(num),
             Err(_) => Err(format!("String {} is not in hex/bin/decimal format!", s)),
         }

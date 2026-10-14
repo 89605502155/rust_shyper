@@ -27,7 +27,7 @@ use crate::{
         VmAddPassthroughDeviceStreamsIdsConfigArg, VmKernelImageInfo, VmLoadKernelImgFileArg,
         VmMemoryColorBudgetConfigArg, VmSetCpuConfigArg,
     },
-    daemon::{
+    hvc::{
         generate_hvc_mode, HVC_CONFIG, HVC_CONFIG_ADD_VM, HVC_CONFIG_CPU, HVC_CONFIG_DELETE_VM, HVC_CONFIG_DTB_DEVICE,
         HVC_CONFIG_EMULATED_DEVICE, HVC_CONFIG_MEMORY_COLOR_BUDGET, HVC_CONFIG_MEMORY_REGION,
         HVC_CONFIG_PASSTHROUGH_DEVICE_IRQS, HVC_CONFIG_PASSTHROUGH_DEVICE_REGION,
@@ -39,14 +39,6 @@ use crate::{
 };
 
 const CACHE_MAX: usize = 32 * 1024 * 1024;
-const CMDLINE_MAX_LEN: usize = 1024;
-
-const PASSTHROUGH_DEV_MAX_NUM: usize = 128;
-const EMULATED_DEV_MAX_NUM: usize = 16;
-const DTB_DEV_MAX_NUM: usize = 16;
-const DEV_MAX_NUM: usize = PASSTHROUGH_DEV_MAX_NUM + EMULATED_DEV_MAX_NUM + DTB_DEV_MAX_NUM;
-const CFG_MAX_NUM: usize = 0x10;
-const IRQ_MAX_NUM: usize = 0x40;
 
 #[allow(non_camel_case_types)]
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -166,15 +158,15 @@ where
             let mut vec: Vec<u64> = Vec::new();
             for color_slice in value.split(',') {
                 if !color_slice.contains("-") {
-                    let color = u64::from_str_radix(color_slice, 10).map_err(de::Error::custom)?;
+                    let color = color_slice.parse::<u64>().map_err(de::Error::custom)?;
                     vec.push(color);
                     continue;
                 }
 
                 let pos = color_slice.find("-").unwrap();
                 let len = color_slice.len();
-                let start = u64::from_str_radix(&color_slice[0..pos], 10).map_err(de::Error::custom)?;
-                let end = u64::from_str_radix(&color_slice[pos + 1..len], 10).map_err(de::Error::custom)?;
+                let start = color_slice[0..pos].parse::<u64>().map_err(de::Error::custom)?;
+                let end = color_slice[pos + 1..len].parse::<u64>().map_err(de::Error::custom)?;
 
                 for i in start..end + 1 {
                     vec.push(i);
@@ -412,7 +404,7 @@ pub fn config_vm_info(vm_cfg: VmConfigEntry, vm_id: u64, dev: &Shyper) -> Result
             base_ipa: device.base_ipa,
             length: device.length,
             irq_id: device.irq_id as u64,
-            cfg_list_addr: device.cfg_list.as_ptr() as *const u64 as u64,
+            cfg_list_addr: device.cfg_list.as_ptr() as u64,
             cfg_list_length: device.cfg_list.len() as u64,
             emu_type: device.r#type as u64,
         };
@@ -437,8 +429,8 @@ pub fn config_vm_info(vm_cfg: VmConfigEntry, vm_id: u64, dev: &Shyper) -> Result
             .map_err(|_| String::from("failed to send vm_passthrough_device_region_config_arg"))?;
 
         passthrough_irqs.append(&mut device.irq_list.clone().into_iter().map(|x| x as u64).collect());
-        if device.smmu_id.is_some() {
-            passthrough_stream_ids.push(device.smmu_id.unwrap() as u64);
+        if let Some(smmu_id) = device.smmu_id {
+            passthrough_stream_ids.push(smmu_id as u64);
         }
     }
 
@@ -447,7 +439,7 @@ pub fn config_vm_info(vm_cfg: VmConfigEntry, vm_id: u64, dev: &Shyper) -> Result
         let fd_event = generate_hvc_mode(HVC_CONFIG, HVC_CONFIG_PASSTHROUGH_DEVICE_IRQS);
         let passthrough_irqs_cfg_arg = VmAddPassthroughDeviceIrqsConfigArg {
             vmid: vm_id,
-            irqs_addr: passthrough_irqs.as_ptr() as *const u64 as u64,
+            irqs_addr: passthrough_irqs.as_ptr() as u64,
             irqs_length: passthrough_irqs.len() as u64,
         };
         ioctl_send_config(dev, fd_event, passthrough_irqs_cfg_arg)
@@ -459,7 +451,7 @@ pub fn config_vm_info(vm_cfg: VmConfigEntry, vm_id: u64, dev: &Shyper) -> Result
         let fd_event = generate_hvc_mode(HVC_CONFIG, HVC_CONFIG_PASSTHROUGH_DEVICE_STREAMS_IDS);
         let passthrough_stream_ids_cfg_arg = VmAddPassthroughDeviceStreamsIdsConfigArg {
             vmid: vm_id,
-            streams_ids_addr: passthrough_stream_ids.as_ptr() as *const u64 as u64,
+            streams_ids_addr: passthrough_stream_ids.as_ptr() as u64,
             streams_ids_length: passthrough_stream_ids.len() as u64,
         };
         ioctl_send_config(dev, fd_event, passthrough_stream_ids_cfg_arg)

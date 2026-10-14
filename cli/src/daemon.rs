@@ -18,10 +18,11 @@ use log::{debug, error, info, warn};
 use signal_hook::{consts::SIGUSR1, iterator::Signals};
 
 use crate::{
+    hvc::*,
     blk::{mediated_blk_add, mediated_blk_init, mediated_blk_read, mediated_blk_write, MediatedBlkCfg, MED_BLK_LIST},
     config::copy_img_file_to_memory,
     dev::Shyper,
-    ioctl_arg::{IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME},
+    ioctl_arg::{IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME, IOCTL_SYS_GET_VMID, IOCTL_SYS_INIT_USR_PID},
     util::cstr_arr_to_string,
     vmm::vmm_boot,
 };
@@ -73,81 +74,6 @@ impl HvcMsg<'_> {
     }
 }
 
-// hvc_fid
-pub const HVC_SYS: usize = 0;
-pub const HVC_VMM: usize = 1;
-pub const HVC_IVC: usize = 2;
-pub const HVC_MEDIATED: usize = 3;
-pub const HVC_CONFIG: usize = 0x11;
-#[cfg(feature = "unilib")]
-pub const HVC_UNILIB: usize = 0x12;
-
-// hvc_sys_event
-pub const HVC_SYS_REBOOT: usize = 0;
-pub const HVC_SYS_SHUTDOWN: usize = 1;
-pub const HVC_SYS_UPDATE: usize = 3;
-pub const HVC_SYS_TEST: usize = 4;
-pub const HVC_SYS_UPDATE_MEM_MAP: usize = 5;
-
-// hvc_vmm_event
-pub const HVC_VMM_LIST_VM: usize = 0;
-pub const HVC_VMM_GET_VM_STATE: usize = 1;
-pub const HVC_VMM_BOOT_VM: usize = 2;
-pub const HVC_VMM_SHUTDOWN_VM: usize = 3;
-pub const HVC_VMM_REBOOT_VM: usize = 4;
-pub const HVC_VMM_GET_VM_DEF_CFG: usize = 5;
-pub const HVC_VMM_GET_VM_CFG: usize = 6;
-pub const HVC_VMM_SET_VM_CFG: usize = 7;
-pub const HVC_VMM_GET_VM_ID: usize = 8;
-pub const HVC_VMM_TRACE_VMEXIT: usize = 9;
-// for src vm: send msg to MVM to ask for migrating
-pub const HVC_VMM_MIGRATE_START: usize = 10;
-pub const HVC_VMM_MIGRATE_READY: usize = 11;
-// for sender: copy dirty memory to receiver
-pub const HVC_VMM_MIGRATE_MEMCPY: usize = 12;
-pub const HVC_VMM_MIGRATE_FINISH: usize = 13;
-// for receiver: init new vm but not boot
-pub const HVC_VMM_MIGRATE_INIT_VM: usize = 14;
-pub const HVC_VMM_MIGRATE_VM_BOOT: usize = 15;
-pub const HVC_VMM_VM_REMOVE: usize = 16;
-
-// hvc_ivc_event
-pub const HVC_IVC_UPDATE_MQ: usize = 0;
-pub const HVC_IVC_SEND_MSG: usize = 1;
-pub const HVC_IVC_BROADCAST_MSG: usize = 2;
-pub const HVC_IVC_INIT_KEEP_ALIVE: usize = 3;
-pub const HVC_IVC_KEEP_ALIVE: usize = 4;
-pub const HVC_IVC_ACK: usize = 5;
-pub const HVC_IVC_GET_TIME: usize = 6;
-pub const HVC_IVC_SHARE_MEM: usize = 7;
-pub const HVC_IVC_SEND_SHAREMEM: usize = 0x10;
-//shared mem communication
-pub const HVC_IVC_GET_SHARED_MEM_IPA: usize = 0x11;
-pub const HVC_IVC_SEND_SHAREMEM_TEST_SPEED: usize = 0x12;
-
-// hvc_mediated_event
-pub const HVC_MEDIATED_DEV_APPEND: usize = 0x30;
-pub const HVC_MEDIATED_DEV_NOTIFY: usize = 0x31;
-pub const HVC_MEDIATED_DRV_NOTIFY: usize = 0x32;
-pub const HVC_MEDIATED_USER_NOTIFY: usize = 0x20;
-// hvc_config_event
-pub const HVC_CONFIG_ADD_VM: usize = 0;
-pub const HVC_CONFIG_DELETE_VM: usize = 1;
-pub const HVC_CONFIG_CPU: usize = 2;
-pub const HVC_CONFIG_MEMORY_REGION: usize = 3;
-pub const HVC_CONFIG_EMULATED_DEVICE: usize = 4;
-pub const HVC_CONFIG_PASSTHROUGH_DEVICE_REGION: usize = 5;
-pub const HVC_CONFIG_PASSTHROUGH_DEVICE_IRQS: usize = 6;
-pub const HVC_CONFIG_PASSTHROUGH_DEVICE_STREAMS_IDS: usize = 7;
-pub const HVC_CONFIG_DTB_DEVICE: usize = 8;
-pub const HVC_CONFIG_UPLOAD_KERNEL_IMAGE: usize = 9;
-pub const HVC_CONFIG_MEMORY_COLOR_BUDGET: usize = 10;
-pub const HVC_CONFIG_UPLOAD_DEVICE_TREE: usize = 11;
-
-pub fn generate_hvc_mode(fid: usize, event: usize) -> usize {
-    ((fid << 8) | event) & 0xffff
-}
-
 // Execute the signal processing function only once
 fn sig_handle_event(signal: i32) {
     // info!("Receive signal {}", signal);
@@ -164,59 +90,49 @@ fn sig_handle_event(signal: i32) {
     let msg = HvcMsg(&buf);
 
     match msg.fid() as usize {
-        HVC_MEDIATED => match msg.event() as usize {
-            HVC_MEDIATED_USER_NOTIFY => {
-                match msg.blk_type() {
-                    0 => mediated_blk_read(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
-                    1 => mediated_blk_write(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
-                    t => warn!("[sig_handle_event] unknown blk req type {}", t),
-                }
-                return;
-            }
-            _ => return,
+        HVC_MEDIATED if msg.event() as usize == HVC_MEDIATED_USER_NOTIFY => match msg.blk_type() {
+            0 => mediated_blk_read(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
+            1 => mediated_blk_write(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
+            t => warn!("[sig_handle_event] unknown blk req type {}", t),
         },
-        HVC_CONFIG => match msg.event() as usize {
-            HVC_CONFIG_UPLOAD_KERNEL_IMAGE => {
-                let vm_id = msg.vm_id();
-                let fd_event = generate_hvc_mode(IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME);
+        HVC_CONFIG if msg.event() as usize == HVC_CONFIG_UPLOAD_KERNEL_IMAGE => {
+            let vm_id = msg.vm_id();
+            let fd_event = generate_hvc_mode(IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME);
 
-                #[repr(C)]
-                struct NameArg {
-                    vm_id: u64,
-                    name_addr: *mut u8,
-                }
+            #[repr(C)]
+            struct NameArg {
+                vm_id: u64,
+                name_addr: *mut u8,
+            }
 
-                let mut filename: [u8; 64] = [0; 64];
-                let mut name_arg: NameArg = NameArg {
-                    vm_id,
-                    name_addr: filename.as_mut_ptr(),
-                };
+            let mut filename: [u8; 64] = [0; 64];
+            let mut name_arg: NameArg = NameArg {
+                vm_id,
+                name_addr: filename.as_mut_ptr(),
+            };
 
-                let dev = match Shyper::open() {
-                    Ok(dev) => dev,
-                    Err(err) => {
-                        warn!("sig_handle_event: open /dev/shyper failed: {}", err);
-                        return;
-                    }
-                };
-                // SAFETY: the module writes the image name (at most 64 bytes)
-                // to `filename`.
-                if unsafe { dev.ioctl_ref(fd_event, &mut name_arg) }.is_err() {
-                    warn!("sig_handle_event: failed to get VM[{}] name\n", vm_id);
+            let dev = match Shyper::open() {
+                Ok(dev) => dev,
+                Err(err) => {
+                    warn!("sig_handle_event: open /dev/shyper failed: {}", err);
                     return;
                 }
-
-                let img_name = cstr_arr_to_string(filename.as_slice());
-                if let Err(err) = copy_img_file_to_memory(vm_id, img_name, &dev) {
-                    warn!("sig_handle_event: failed to copy img file to memory: {}", err);
-                    return;
-                }
-                vmm_boot(vm_id as u32);
+            };
+            // SAFETY: the module writes the image name (at most 64 bytes)
+            // to `filename`.
+            if unsafe { dev.ioctl_ref(fd_event, &mut name_arg) }.is_err() {
+                warn!("sig_handle_event: failed to get VM[{}] name\n", vm_id);
                 return;
             }
-            _ => return,
-        },
-        _ => return,
+
+            let img_name = cstr_arr_to_string(filename.as_slice());
+            if let Err(err) = copy_img_file_to_memory(vm_id, img_name, &dev) {
+                warn!("sig_handle_event: failed to copy img file to memory: {}", err);
+                return;
+            }
+            vmm_boot(vm_id as u32);
+        }
+        _ => (),
     }
 }
 
@@ -234,13 +150,13 @@ pub fn init_daemon() {
         }
     };
     // Set process id, in case kernel module can send signal to cli
-    if let Err(err) = dev.ioctl_val_any(0x1002, pid as u64) {
+    if let Err(err) = dev.ioctl_val_any(generate_hvc_mode(IOCTL_SYS, IOCTL_SYS_INIT_USR_PID), pid as u64) {
         error!("ioctl set pid failed: {}", err);
         return;
     }
     // Get vmid
     // SAFETY: the module writes the VM id as an int.
-    if let Err(err) = unsafe { dev.ioctl_ref_any(0x1004, &mut vmid) } {
+    if let Err(err) = unsafe { dev.ioctl_ref_any(generate_hvc_mode(IOCTL_SYS, IOCTL_SYS_GET_VMID), &mut vmid) } {
         error!("ioctl get vmid failed: {}", err);
         return;
     }
@@ -256,7 +172,7 @@ pub fn init_daemon() {
     // TODO: The signal processing at this time is not real-time, but the signal is first written to the channel in the custom handler set in signal_hook,
     // and then captured in the user mode polling
     // Consider using signal_hook's real-time signal processing to enhance real-time performance
-    let mut signals = Signals::new(&[SIGUSR1]).unwrap();
+    let mut signals = Signals::new([SIGUSR1]).unwrap();
     for signal in &mut signals {
         sig_handle_event(signal);
     }
@@ -273,12 +189,12 @@ pub fn config_daemon(path: String) -> Result<(), String> {
     let mut disks: Vec<MediatedBlkCfg> = Vec::new();
     for disk in config.mediated {
         // Add disk, and if error happens, skip it
-        let result = mediated_blk_add(disk_cnt, disk.clone());
-        if result.is_ok() {
-            disk_cnt += 1;
-            disks.push(result.unwrap());
-        } else {
-            warn!("Add mediated disk {} failed: {}", disk, result.err().unwrap());
+        match mediated_blk_add(disk_cnt, disk.clone()) {
+            Ok(cfg) => {
+                disk_cnt += 1;
+                disks.push(cfg);
+            }
+            Err(err) => warn!("Add mediated disk {} failed: {}", disk, err),
         }
     }
     MED_BLK_LIST.set(disks).unwrap();

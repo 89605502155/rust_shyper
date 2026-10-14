@@ -20,7 +20,11 @@ use rustix::{
     system::finit_module,
 };
 
-use crate::{dev::Shyper, util::file_size};
+use crate::{
+    dev::Shyper,
+    hvc::{generate_hvc_mode, HVC_SYS, HVC_SYS_REBOOT, HVC_SYS_SHUTDOWN, HVC_SYS_TEST, HVC_SYS_UPDATE},
+    util::file_size,
+};
 
 /// Shared memory the hypervisor reads a new image from on live update.
 const UPDATE_DEV: &str = "/dev/hyper_update";
@@ -41,15 +45,15 @@ fn sys_ioctl(name: &str, request: usize, arg: u64) {
 }
 
 pub fn sys_reboot(force: bool) {
-    sys_ioctl("reboot", 0x0000, force as u64);
+    sys_ioctl("reboot", generate_hvc_mode(HVC_SYS, HVC_SYS_REBOOT), force as u64);
 }
 
 pub fn sys_shutdown(force: bool) {
-    sys_ioctl("shutdown", 0x0001, force as u64);
+    sys_ioctl("shutdown", generate_hvc_mode(HVC_SYS, HVC_SYS_SHUTDOWN), force as u64);
 }
 
 pub fn sys_test() {
-    sys_ioctl("test", 0x0004, 0);
+    sys_ioctl("test", generate_hvc_mode(HVC_SYS, HVC_SYS_TEST), 0);
 }
 
 /// Copies the image at `path` (without its mkimage header) to the update
@@ -107,7 +111,7 @@ pub fn sys_insmod(path: &str) {
 pub fn sys_update(path: String) {
     match update_image(&path) {
         Ok(0) => println!("File {} size is 0, abort", path),
-        Ok(size) => sys_ioctl("update", 0x0000, size),
+        Ok(size) => sys_ioctl("update", generate_hvc_mode(HVC_SYS, HVC_SYS_UPDATE), size),
         Err(err) => println!("{}", err),
     }
 }

@@ -8,6 +8,9 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
+//! ioctls handled by the MVM kernel module itself (fid IOCTL_SYS).
+#![allow(dead_code)]
+
 pub const IOCTL_SYS: usize = 0x10;
 
 // ioctl_sys_event

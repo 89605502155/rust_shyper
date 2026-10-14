@@ -18,7 +18,7 @@ use log::{info, warn};
 use once_cell::sync::OnceCell;
 
 use crate::{
-    daemon::generate_hvc_mode,
+    hvc::{generate_hvc_mode, HVC_MEDIATED, HVC_MEDIATED_DEV_NOTIFY},
     dev::{device_size, open_direct, virt_to_phys, HugeBuf, Shyper},
     ioctl_arg::{IOCTL_SYS, IOCTL_SYS_APPEND_MED_BLK},
     util::{check_cache_address, cstr_arr_to_string, string_to_cstr_arr},
@@ -27,8 +27,8 @@ use crate::{
 pub const HUGE_TLB_MAX: usize = 32 * 1024 * 1024;
 pub const BLOCK_SIZE: usize = 512;
 
-/// ioctl telling the kernel module that a mediated request has been served.
-const IOCTL_MEDIATED_FINISH: usize = 0x0331;
+/// ioctl telling the hypervisor that a mediated request has been served.
+const IOCTL_MEDIATED_FINISH: usize = generate_hvc_mode(HVC_MEDIATED, HVC_MEDIATED_DEV_NOTIFY);
 
 pub static SHYPER: OnceCell<Shyper> = OnceCell::new();
 
