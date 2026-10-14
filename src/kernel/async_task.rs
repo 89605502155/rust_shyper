@@ -158,7 +158,10 @@ impl<T: TaskOwner> FairQueue<T> {
     pub fn remove(&mut self, owner: usize) {
         if let Some(sub_queue) = self.map.remove(&owner) {
             self.len -= sub_queue.len();
-            self.queue = self.queue.extract_if(|x| *x == owner).collect();
+            self.queue = core::mem::take(&mut self.queue)
+                .into_iter()
+                .filter(|x| *x != owner)
+                .collect();
         }
     }
 }
@@ -503,5 +506,8 @@ pub fn remove_vm_async_task(vm_id: usize) {
     let mut io_list = ASYNC_IO_TASK_LIST.lock();
     let mut ipi_list = ASYNC_IPI_TASK_LIST.lock();
     io_list.remove(vm_id);
-    *ipi_list = ipi_list.extract_if(|x| x.src_vmid == vm_id).collect::<LinkedList<_>>();
+    *ipi_list = core::mem::take(&mut *ipi_list)
+        .into_iter()
+        .filter(|x| x.src_vmid != vm_id)
+        .collect::<LinkedList<_>>();
 }
