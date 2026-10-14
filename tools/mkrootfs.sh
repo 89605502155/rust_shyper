@@ -108,8 +108,11 @@ cd /root/gvm
 /root/shyper system daemon mediated.json > /root/gvm/daemon.log 2>&1 &
 sleep 3
 /root/shyper vm config gvm.json
+# The MVM side of the GVM console must not echo, or the guest gets its own
+# output back as input.
+stty -F /dev/hvc0 raw -echo
 /root/shyper vm boot 1
-echo "GVM started, attach to its console with: cat /dev/hvc0 & cat > /dev/hvc0"
+echo "GVM started, its console is /dev/hvc0, e.g.: cat /dev/hvc0 & cat > /dev/hvc0"
 EOF
 $SUDO chmod 0755 "$R/start-gvm.sh"
 {

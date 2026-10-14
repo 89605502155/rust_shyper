@@ -152,9 +152,22 @@ fn print_built_info() {
     );
 }
 
+/// Checks the device tree the boot loader passed (in x0 / a1).
+fn boot_dtb(dtb: *mut fdt::myctypes::c_void) -> *mut fdt::myctypes::c_void {
+    const FDT_MAGIC: u32 = 0xd00d_feed;
+    // SAFETY: a non-null dtb points to memory mapped by the boot code.
+    if dtb.is_null() || u32::from_be(unsafe { core::ptr::read_volatile(dtb as *const u32) }) != FDT_MAGIC {
+        panic!(
+            "no valid device tree from the boot loader at {:p} (QEMU passes it to the .bin image only)",
+            dtb
+        );
+    }
+    dtb
+}
+
 // Only core 0 will execute this function
 #[no_mangle]
-pub fn init(dtb: &mut fdt::myctypes::c_void) {
+pub fn init(dtb: *mut fdt::myctypes::c_void) {
     print_built_info();
 
     #[cfg(feature = "pi4")]
@@ -166,6 +179,7 @@ pub fn init(dtb: &mut fdt::myctypes::c_void) {
     heap_init();
     kernel::logger_init().unwrap();
     mem_init();
+    let dtb = boot_dtb(dtb);
     // SAFETY:
     // DTB is saved value from boot_stage
     // And it is passed by bootloader

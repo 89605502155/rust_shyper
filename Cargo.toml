@@ -16,7 +16,13 @@ license = "MulanPSL-2.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-crate-type = ["staticlib"]
+crate-type = ["staticlib", "rlib"]
+test = false
+bench = false
+
+[[bin]]
+name = "rust_shyper"
+path = "src/main.rs"
 test = false
 bench = false
 
@@ -36,7 +42,7 @@ gethostname = "0.4.3"
 [dependencies]
 riscv-decode = "0.2.1"
 fdt_print = { package = "fdt", version = "0.1.5", features =["pretty-printing"] }
-vm-fdt = { git = "https://github.com/OhmR/vm-fdt" }
+vm-fdt = { version = "0.3", default-features = false, features = ["alloc"] }
 fdt = { path = "deps/libfdt-rs" }
 log = { version = "0.4", features = [
     "max_level_trace",

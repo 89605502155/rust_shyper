@@ -38,7 +38,9 @@ fn main() {
     let arch = var("CARGO_CFG_TARGET_ARCH").unwrap();
 
     let text_start = get_text_start();
-    println!("cargo:rustc-link-arg=-Tlinkers/{arch}.ld");
+    let manifest_dir = var("CARGO_MANIFEST_DIR").unwrap();
+    println!("cargo:rustc-link-arg=-T{manifest_dir}/linkers/{arch}.ld");
+    println!("cargo:rerun-if-changed=linkers/{arch}.ld");
     println!("cargo:rustc-link-arg=--defsym=TEXT_START={text_start}");
 
     // The board name printed at boot: BOARD from the Makefile, or else the
