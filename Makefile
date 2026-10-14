@@ -59,7 +59,7 @@ TARGET_DIR=target/${ARCH}/${PROFILE}
 ifeq (${ARCH}, aarch64)
 	QEMU_COMMON_OPTIONS = -machine virt,virtualization=on,gic-version=$(GIC_VERSION)\
 		-m 8g -cpu cortex-a57 -smp 4 -display none -global virtio-mmio.force-legacy=false\
-		-kernel ${TARGET_DIR}/${IMAGE}.bin
+		-kernel "${TARGET_DIR}/${IMAGE}.bin"
 	QEMU_NETWORK_OPTIONS = -netdev user,id=n0,hostfwd=tcp::5555-:22 -device virtio-net-device,bus=virtio-mmio-bus.24,netdev=n0
 	QEMU_DISK_OPTIONS = -drive file=${DISK},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.25
 	MKIMAGE_ARCH = arm64
@@ -73,7 +73,7 @@ else ifeq (${ARCH}, riscv64)
 	endif
 	
 	QEMU_COMMON_OPTIONS += -m 8g -smp 4 -display none -bios default \
-		-kernel ${TARGET_DIR}/${IMAGE}.bin
+		-kernel "${TARGET_DIR}/${IMAGE}.bin"
 	QEMU_NETWORK_OPTIONS = -netdev user,id=n0,hostfwd=tcp::5555-:22 -device virtio-net-device,netdev=n0
 	QEMU_DISK_OPTIONS = -drive file=${DISK},if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 	MKIMAGE_ARCH = riscv
@@ -85,7 +85,7 @@ endif
 TARGET_CFG := $(CURDIR)/cfg/${ARCH}.json
 
 # Combine board(tx2, qemu, pi4, ...) with previous features as cargo's features
-CARGO_FLAGS ?= -Z build-std=core,alloc -Zbuild-std-features=compiler-builtins-mem --target ${TARGET_CFG} --no-default-features --features "${BOARD},${FEATURES}"
+CARGO_FLAGS ?= -Z build-std=core,alloc -Zbuild-std-features=compiler-builtins-mem --target "${TARGET_CFG}" --no-default-features --features "${BOARD},${FEATURES}"
 ifeq (${PROFILE}, release)
 CARGO_FLAGS := ${CARGO_FLAGS} --release
 endif
@@ -102,7 +102,12 @@ else ifeq ($(ARCH), riscv64)
 		  -ffreestanding
 endif
 
-export BOARD CROSS_COMPILE CFLAGS AIA_GUESTS = $(AIA_GUESTS)
+# Make bindgen (used by the fdt crate) parse headers with the cross toolchain's
+# libc instead of the host glibc headers in /usr/include.
+CROSS_LIBC_INCLUDE := $(abspath $(dir $(shell $(CROSS_COMPILE)gcc -print-file-name=libc.a))../include)
+BINDGEN_EXTRA_CLANG_ARGS ?= -isystem $(CROSS_LIBC_INCLUDE)
+
+export BOARD CROSS_COMPILE CFLAGS BINDGEN_EXTRA_CLANG_ARGS AIA_GUESTS = $(AIA_GUESTS)
 
 CARGO_ACTION ?= build
 
@@ -113,10 +118,10 @@ UBOOT_IMAGE ?= Image$(USER)_$(ARCH)_$(BOARD)
 .PHONY: build doc cargo upload qemu rk3588 tx2 pi4 tx2_update tx2_ramdisk gdb clean clippy
 
 build: cargo
-	bash linkimg.sh -i ${TARGET_DIR}/${RELOCATE_IMAGE} -m ${VM0_IMAGE_PATH} \
-		-t ${LD} -f linkers/${ARCH}.ld -s ${TEXT_START} -o ${TARGET_DIR}/${IMAGE}
-	${OBJDUMP} --demangle -d ${TARGET_DIR}/${IMAGE} > ${TARGET_DIR}/t.txt
-	${OBJCOPY} ${TARGET_DIR}/${IMAGE} -O binary ${TARGET_DIR}/${IMAGE}.bin
+	bash linkimg.sh -i "${TARGET_DIR}/${RELOCATE_IMAGE}" -m ${VM0_IMAGE_PATH} \
+		-t "${LD}" -f "linkers/${ARCH}.ld" -s ${TEXT_START} -o "${TARGET_DIR}/${IMAGE}"
+	${OBJDUMP} --demangle -d "${TARGET_DIR}/${IMAGE}" > "${TARGET_DIR}/t.txt"
+	${OBJCOPY} "${TARGET_DIR}/${IMAGE}" -O binary "${TARGET_DIR}/${IMAGE}.bin"
 
 cargo:
 	cargo ${CARGO_ACTION} ${CARGO_FLAGS}
@@ -129,7 +134,7 @@ upload: build
 
 qemu:
 	$(MAKE) build BOARD=qemu TEXT_START=${TEXT_START} VM0_IMAGE_PATH=${VM0_IMAGE_PATH}
-	${OBJCOPY} ${TARGET_DIR}/${IMAGE} -O binary ${TARGET_DIR}/${IMAGE}.bin
+	${OBJCOPY} "${TARGET_DIR}/${IMAGE}" -O binary "${TARGET_DIR}/${IMAGE}.bin"
 
 qemu_uboot:
 	$(MAKE) upload BOARD=qemu TEXT_START=0x80200000 VM0_IMAGE_PATH="./image/Image_vanilla"
