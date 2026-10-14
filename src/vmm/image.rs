@@ -1,5 +1,5 @@
-// Copyright (c) 2023 Beihang University, Huawei Technologies Co.,Ltd. All rights reserved.
-// Rust-Shyper is licensed under Mulan PSL v2.
+// Copyright (c) 2026 Andrey Ferubko.
+// trosna-shyper is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan PSL v2.
 // You may obtain a copy of Mulan PSL v2 at:
 //          http://license.coscl.org.cn/MulanPSL2

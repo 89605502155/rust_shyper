@@ -34,7 +34,7 @@ use crate::config::{config_add_vm, config_delete_vm};
     version,
     author,
     about,
-    long_about = "CommandLine Interface for Shyper/Rust-Shyper Hypervisor"
+    long_about = "Command line interface for the trosna-shyper hypervisor (compatible with Rust-Shyper)"
 )]
 struct Cli {
     #[command(subcommand)]
@@ -76,7 +76,7 @@ enum SystemSubCmd {
         #[arg(default_value = "cli-config.json")]
         config: String,
     },
-    /// load the Rust-Shyper kernel module (shyper.ko) into the MVM kernel
+    /// load the hypervisor kernel module (shyper.ko) into the MVM kernel
     Insmod {
         /// path of the kernel module
         #[arg(default_value = "shyper.ko")]

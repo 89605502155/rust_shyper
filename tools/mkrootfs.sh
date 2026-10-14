@@ -45,7 +45,7 @@ fi
 echo "Building the CLI..."
 # cli/.cargo/config.toml selects rust-lld, it is only read from that directory.
 (cd "$ROOT_DIR/cli" && cargo build -q --release --target aarch64-unknown-linux-musl)
-CLI="$ROOT_DIR/cli/target/aarch64-unknown-linux-musl/release/shyper-cli-rust"
+CLI="$ROOT_DIR/cli/target/aarch64-unknown-linux-musl/release/shyper"
 
 export_rootfs() { # <dir>
     local cid

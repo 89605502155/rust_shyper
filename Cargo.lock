@@ -361,31 +361,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bec7a6dc0b0bb96a4d23271864a45c0d24dcd9dde2a1b630a35f79fa29c588bf"
 
 [[package]]
-name = "rust_shyper"
-version = "0.1.0"
-dependencies = [
- "aarch64-cpu",
- "buddy_system_allocator",
- "built",
- "cfg-if",
- "chrono",
- "fdt 0.1.5",
- "fdt 0.2.0",
- "fdt-rs",
- "gethostname",
- "log",
- "riscv",
- "riscv-decode",
- "rustsbi",
- "sbi-rt",
- "sbi-spec",
- "smccc",
- "spin",
- "tock-registers",
- "vm-fdt",
-]
-
-[[package]]
 name = "rustc_version"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -585,6 +560,31 @@ dependencies = [
  "serde_spanned",
  "toml_datetime",
  "winnow",
+]
+
+[[package]]
+name = "trosna-shyper"
+version = "0.2.0"
+dependencies = [
+ "aarch64-cpu",
+ "buddy_system_allocator",
+ "built",
+ "cfg-if",
+ "chrono",
+ "fdt 0.1.5",
+ "fdt 0.2.0",
+ "fdt-rs",
+ "gethostname",
+ "log",
+ "riscv",
+ "riscv-decode",
+ "rustsbi",
+ "sbi-rt",
+ "sbi-spec",
+ "smccc",
+ "spin",
+ "tock-registers",
+ "vm-fdt",
 ]
 
 [[package]]

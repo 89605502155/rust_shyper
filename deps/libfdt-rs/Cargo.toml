@@ -2,5 +2,5 @@
 name = "fdt"
 version = "0.2.0"
 edition = "2021"
-description = "Pure Rust flattened device tree editing (a port of the libfdt subset used by Rust-Shyper)"
-license = "MulanPSL-2.0"
+description = "Pure Rust flattened device tree editing (a port of the libfdt subset used by trosna-shyper)"
+license = "MulanPSL-2.0 AND BSD-2-Clause"

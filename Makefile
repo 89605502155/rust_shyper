@@ -54,8 +54,8 @@ endif
 TEXT_START ?= 0x83000000
 VM0_IMAGE_PATH ?= ./image/L4T
 
-RELOCATE_IMAGE=librust_shyper.a
-IMAGE=rust_shyper
+RELOCATE_IMAGE=libtrosna_shyper.a
+IMAGE=trosna-shyper
 
 TARGET_DIR=target/${RUST_TARGET}/${PROFILE}
 

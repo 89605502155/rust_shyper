@@ -1,7 +1,13 @@
 [package]
-name = "shyper-cli-rust"
-version = "0.1.0"
+name = "trosna-shyper-cli"
+version = "0.2.0"
 edition = "2021"
+description = "Command line tool to manage trosna-shyper virtual machines from the MVM"
+license = "MulanPSL-2.0"
+
+[[bin]]
+name = "shyper"
+path = "src/main.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
