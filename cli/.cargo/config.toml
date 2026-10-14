@@ -1,0 +1,8 @@
+# The CLI runs in the MVM. It is linked statically against musl with rust-lld,
+# so only the Rust toolchain (rustup target add aarch64-unknown-linux-musl /
+# riscv64gc-unknown-linux-musl) is needed to cross compile it.
+[target.aarch64-unknown-linux-musl]
+linker = "rust-lld"
+
+[target.riscv64gc-unknown-linux-musl]
+linker = "rust-lld"

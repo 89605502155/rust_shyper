@@ -12,6 +12,7 @@ mod blk;
 mod config;
 mod config_arg;
 mod daemon;
+mod dev;
 mod ioctl_arg;
 mod sys;
 mod util;
@@ -23,7 +24,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use config::parse_vm_entry;
 use daemon::{config_daemon, init_daemon};
 use log::{error, info, warn};
-use sys::{sys_reboot, sys_shutdown, sys_test, sys_update};
+use sys::{sys_insmod, sys_reboot, sys_shutdown, sys_test, sys_update};
 use vmm::{vmm_boot, vmm_getvmid, vmm_list_vm_info, vmm_reboot, vmm_remove};
 
 use crate::config::config_add_vm;
@@ -74,6 +75,12 @@ enum SystemSubCmd {
         /// daemon config, specifically mediated disk config
         #[arg(default_value = "cli-config.json")]
         config: String,
+    },
+    /// load the Rust-Shyper kernel module (shyper.ko) into the MVM kernel
+    Insmod {
+        /// path of the kernel module
+        #[arg(default_value = "shyper.ko")]
+        module: String,
     },
 }
 
@@ -137,6 +144,7 @@ fn exec_system_cmd(subcmd: SystemSubCmd) {
         SystemSubCmd::Reboot { force } => sys_reboot(force),
         SystemSubCmd::Shutdown { force } => sys_shutdown(force),
         SystemSubCmd::Update { image } => sys_update(image),
+        SystemSubCmd::Insmod { module } => sys_insmod(&module),
         SystemSubCmd::Test {} => sys_test(),
         SystemSubCmd::Daemon { config } => {
             config_daemon(config).unwrap();

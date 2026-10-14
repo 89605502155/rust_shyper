@@ -11,16 +11,16 @@
 use std::{
     fs::{self, File},
     io::Read,
-    mem, process,
+    process,
 };
-use libc::{c_char, c_int, c_ulong, c_ulonglong, close, ioctl, open, uintptr_t, O_RDWR, SIGTERM, SIGUSR1};
 use serde::{Serialize, Deserialize};
 use log::{debug, error, info, warn};
-use signal_hook::iterator::Signals;
+use signal_hook::{consts::SIGUSR1, iterator::Signals};
 
 use crate::{
     blk::{mediated_blk_add, mediated_blk_init, mediated_blk_read, mediated_blk_write, MediatedBlkCfg, MED_BLK_LIST},
     config::copy_img_file_to_memory,
+    dev::Shyper,
     ioctl_arg::{IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME},
     util::cstr_arr_to_string,
     vmm::vmm_boot,
@@ -31,27 +31,46 @@ struct DaemonConfig {
     mediated: Vec<String>,
 }
 
-#[repr(C)]
-struct HvcType {
-    hvc_fid: u64,
-    hvc_event: u64,
-}
+/// The messages the kernel module passes on from the hypervisor, read from
+/// /dev/shyper. They are C structs, laid out as:
+///
+/// * every message: `u64 hvc_fid; u64 hvc_event;`
+/// * block request: `... u16 blk_id; u32 type; u64 sector; u64 count;`
+/// * config request: `... u64 vm_id;`
+struct HvcMsg<'a>(&'a [u8]);
 
-#[repr(C)]
-struct BlkArg {
-    hvc_fid: u64,
-    hvc_event: u64,
-    blk_id: u16,
-    r#type: u32,
-    sector: u64,
-    count: u64,
-}
+impl HvcMsg<'_> {
+    fn u64_at(&self, off: usize) -> u64 {
+        u64::from_ne_bytes(self.0[off..off + 8].try_into().unwrap())
+    }
 
-#[repr(C)]
-struct CfgArg {
-    hvc_fid: u64,
-    hvc_event: u64,
-    vm_id: u64,
+    fn fid(&self) -> u64 {
+        self.u64_at(0)
+    }
+
+    fn event(&self) -> u64 {
+        self.u64_at(8)
+    }
+
+    fn blk_id(&self) -> u16 {
+        u16::from_ne_bytes(self.0[16..18].try_into().unwrap())
+    }
+
+    fn blk_type(&self) -> u32 {
+        u32::from_ne_bytes(self.0[20..24].try_into().unwrap())
+    }
+
+    fn blk_sector(&self) -> u64 {
+        self.u64_at(24)
+    }
+
+    fn blk_count(&self) -> u64 {
+        self.u64_at(32)
+    }
+
+    fn vm_id(&self) -> u64 {
+        self.u64_at(16)
+    }
 }
 
 // hvc_fid
@@ -134,9 +153,6 @@ fn sig_handle_event(signal: i32) {
     // info!("Receive signal {}", signal);
 
     let mut file = File::open("/dev/shyper").unwrap();
-    const HVC_TYPE_SIZE: usize = mem::size_of::<HvcType>();
-    const BLK_ARG_SIZE: usize = mem::size_of::<BlkArg>();
-    const CONFIG_ARG_SIZE: usize = mem::size_of::<CfgArg>();
     let mut buf: [u8; 256] = [0; 256];
 
     let n = file.read(&mut buf).unwrap();
@@ -145,69 +161,58 @@ fn sig_handle_event(signal: i32) {
     if n == 0 {
         warn!("Lost signal {}!", signal);
     }
-    let hvc_type: HvcType;
+    let msg = HvcMsg(&buf);
 
-    unsafe {
-        // try_into cast &[u8] to &[u8; HVC_TYPE_SIZE]
-        hvc_type = mem::transmute::<[u8; HVC_TYPE_SIZE], HvcType>(buf[0..HVC_TYPE_SIZE].try_into().unwrap());
-    }
-
-    match hvc_type.hvc_fid as usize {
-        HVC_MEDIATED => match hvc_type.hvc_event as usize {
+    match msg.fid() as usize {
+        HVC_MEDIATED => match msg.event() as usize {
             HVC_MEDIATED_USER_NOTIFY => {
-                let blk_arg;
-                unsafe {
-                    blk_arg = mem::transmute::<[u8; BLK_ARG_SIZE], BlkArg>(buf[0..BLK_ARG_SIZE].try_into().unwrap());
-                }
-                if blk_arg.r#type == 0 {
-                    mediated_blk_read(blk_arg.blk_id, blk_arg.sector, blk_arg.count);
-                } else if blk_arg.r#type == 1 {
-                    mediated_blk_write(blk_arg.blk_id, blk_arg.sector, blk_arg.count);
-                } else {
-                    warn!("[sig_handle_event] unknown blk req type {}", blk_arg.r#type);
+                match msg.blk_type() {
+                    0 => mediated_blk_read(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
+                    1 => mediated_blk_write(msg.blk_id(), msg.blk_sector(), msg.blk_count()),
+                    t => warn!("[sig_handle_event] unknown blk req type {}", t),
                 }
                 return;
             }
             _ => return,
         },
-        HVC_CONFIG => match hvc_type.hvc_event as usize {
+        HVC_CONFIG => match msg.event() as usize {
             HVC_CONFIG_UPLOAD_KERNEL_IMAGE => {
-                let cfg_arg;
-                unsafe {
-                    cfg_arg =
-                        mem::transmute::<[u8; CONFIG_ARG_SIZE], CfgArg>(buf[0..CONFIG_ARG_SIZE].try_into().unwrap());
-                }
+                let vm_id = msg.vm_id();
                 let fd_event = generate_hvc_mode(IOCTL_SYS, IOCTL_SYS_GET_KERNEL_IMG_NAME);
 
                 #[repr(C)]
                 struct NameArg {
                     vm_id: u64,
-                    name_addr: *mut c_char,
+                    name_addr: *mut u8,
                 }
 
-                let filename: [u8; 64] = [0; 64];
+                let mut filename: [u8; 64] = [0; 64];
                 let mut name_arg: NameArg = NameArg {
-                    vm_id: cfg_arg.vm_id,
-                    name_addr: filename.as_ptr() as *mut c_char,
+                    vm_id,
+                    name_addr: filename.as_mut_ptr(),
                 };
 
-                unsafe {
-                    let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-                    if ioctl(fd, fd_event as c_ulonglong, &mut name_arg as *mut NameArg as uintptr_t) != 0 {
-                        warn!("sig_handle_event: failed to get VM[{}] name\n", cfg_arg.vm_id);
-                        close(fd);
+                let dev = match Shyper::open() {
+                    Ok(dev) => dev,
+                    Err(err) => {
+                        warn!("sig_handle_event: open /dev/shyper failed: {}", err);
                         return;
                     }
-
-                    let img_name = cstr_arr_to_string(filename.as_slice());
-                    if let Err(err) = copy_img_file_to_memory(cfg_arg.vm_id, img_name, fd as u32) {
-                        warn!("sig_handle_event: failed to copy img file to memory: {}", err);
-                        return;
-                    }
-                    vmm_boot(cfg_arg.vm_id as u32);
-                    close(fd);
+                };
+                // SAFETY: the module writes the image name (at most 64 bytes)
+                // to `filename`.
+                if unsafe { dev.ioctl_ref(fd_event, &mut name_arg) }.is_err() {
+                    warn!("sig_handle_event: failed to get VM[{}] name\n", vm_id);
                     return;
                 }
+
+                let img_name = cstr_arr_to_string(filename.as_slice());
+                if let Err(err) = copy_img_file_to_memory(vm_id, img_name, &dev) {
+                    warn!("sig_handle_event: failed to copy img file to memory: {}", err);
+                    return;
+                }
+                vmm_boot(vm_id as u32);
+                return;
             }
             _ => return,
         },
@@ -220,27 +225,26 @@ pub fn init_daemon() {
     // IGNORE: create migrate fifo file
     // IGNORE: IVC Init
     let pid = process::id();
-    let mut vmid: c_int = 0;
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        if fd < 0 {
-            error!("open /dev/shyper failed: errcode = {}", *libc::__errno_location());
+    let mut vmid: i32 = 0;
+    let dev = match Shyper::open() {
+        Ok(dev) => dev,
+        Err(err) => {
+            error!("open /dev/shyper failed: {}", err);
             return;
         }
-        // Set process id, in case kernel module can send signal to cli
-        if ioctl(fd, 0x1002, c_ulong::from(pid)) < 0 {
-            error!("ioctl set pid failed: errcode = {}", *libc::__errno_location());
-            close(fd);
-            return;
-        }
-        // Get vmid
-        if ioctl(fd, 0x1004, &mut vmid as *mut c_int) < 0 {
-            error!("ioctl get vmid failed: errcode = {}", *libc::__errno_location());
-            close(fd);
-            return;
-        }
-        close(fd);
+    };
+    // Set process id, in case kernel module can send signal to cli
+    if let Err(err) = dev.ioctl_val_any(0x1002, pid as u64) {
+        error!("ioctl set pid failed: {}", err);
+        return;
     }
+    // Get vmid
+    // SAFETY: the module writes the VM id as an int.
+    if let Err(err) = unsafe { dev.ioctl_ref_any(0x1004, &mut vmid) } {
+        error!("ioctl get vmid failed: {}", err);
+        return;
+    }
+    drop(dev);
 
     // Init mediated block partition
     if vmid == 0 {

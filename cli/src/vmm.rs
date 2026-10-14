@@ -10,10 +10,9 @@
 
 use std::mem;
 
-use libc::{close, ioctl, open, O_RDWR};
 use log::{error, info};
 
-use crate::util::cstr_arr_to_string;
+use crate::{dev::Shyper, util::cstr_arr_to_string};
 
 pub const NAME_MAX_LEN: usize = 32;
 const VM_NUM_MAX: usize = 16;
@@ -26,6 +25,15 @@ struct VMInfo {
     pub vm_name: [u8; NAME_MAX_LEN],
     pub vm_type: u32,
     pub vm_state: u32,
+}
+
+impl VMInfo {
+    const EMPTY: Self = Self {
+        id: 0,
+        vm_name: [0; NAME_MAX_LEN],
+        vm_type: 0,
+        vm_state: 0,
+    };
 }
 
 const VM_T_LINUX: u32 = 0;
@@ -42,87 +50,68 @@ struct VMInfoList {
     pub info_list: [VMInfo; VM_NUM_MAX],
 }
 
-pub fn vmm_boot(vm_id: u32) {
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        if ioctl(fd, 0x0102, vm_id) != 0 {
-            error!("err: ioctl fail!");
-        }
-        close(fd);
+/// The module writes a whole page.
+#[repr(C)]
+struct VMInfoListPage {
+    list: VMInfoList,
+    _pad: [u8; VM_PAGE_SIZE - mem::size_of::<VMInfoList>()],
+}
+
+fn vmm_ioctl(request: usize, arg: u64) {
+    if let Err(err) = Shyper::open().and_then(|dev| dev.ioctl_val(request, arg)) {
+        error!("err: ioctl fail: {}", err);
     }
+}
+
+fn force_arg(force: bool, vm_id: u32) -> u64 {
+    match force {
+        true => ((1 << 16) | vm_id) as u64,
+        false => vm_id as u64,
+    }
+}
+
+pub fn vmm_boot(vm_id: u32) {
+    vmm_ioctl(0x0102, vm_id as u64);
 }
 
 pub fn vmm_shutdown(force: bool, vm_id: u32) {
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        let arg: u64 = match force {
-            true => ((1 << 16) | vm_id) as u64,
-            false => vm_id as u64,
-        };
-        if ioctl(fd, 0x0103, arg) != 0 {
-            error!("err: ioctl fail!");
-        }
-        close(fd);
-    }
+    vmm_ioctl(0x0103, force_arg(force, vm_id));
 }
 
 pub fn vmm_reboot(force: bool, vm_id: u32) {
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        let arg: u64 = match force {
-            true => ((1 << 16) | vm_id) as u64,
-            false => vm_id as u64,
-        };
-        if ioctl(fd, 0x0104, arg) != 0 {
-            error!("err: ioctl fail!");
-        }
-        close(fd);
-    }
+    vmm_ioctl(0x0104, force_arg(force, vm_id));
 }
 
 pub fn vmm_remove(vm_id: u32) {
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        if ioctl(fd, 0x0110, vm_id) != 0 {
-            error!("err: ioctl fail!");
-        }
-        close(fd);
-    }
+    vmm_ioctl(0x0110, vm_id as u64);
 }
 
 pub fn vmm_getvmid() {
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        let mut id: u32 = 0;
-        if ioctl(fd, 0x0108, &mut id as *mut u32) != 0 {
-            error!("err: ioctl fail!");
-        } else {
-            info!("Current VM id is {}", id);
-        }
-        close(fd);
+    let mut id: u32 = 0;
+    // SAFETY: the module writes the VM id as a u32.
+    match Shyper::open().and_then(|dev| unsafe { dev.ioctl_ref(0x0108, &mut id) }) {
+        Ok(()) => info!("Current VM id is {}", id),
+        Err(err) => error!("err: ioctl fail: {}", err),
     }
 }
 
 pub fn vmm_list_vm_info() {
-    let vm_info_list: VMInfoList;
-    const VM_INFO_LIST_SIZE: usize = mem::size_of::<VMInfoList>();
-    unsafe {
-        let fd = open("/dev/shyper\0".as_ptr() as *const u8, O_RDWR);
-        let buf: [u8; VM_PAGE_SIZE] = [0; VM_PAGE_SIZE];
-        if ioctl(fd, 0x0100, buf.as_ptr()) != 0 {
-            error!("err: ioctl fail!");
-            close(fd);
-            return;
-        } else {
-            vm_info_list =
-                mem::transmute::<[u8; VM_INFO_LIST_SIZE], VMInfoList>(buf[0..VM_INFO_LIST_SIZE].try_into().unwrap());
-        }
+    let mut buf = Box::new(VMInfoListPage {
+        list: VMInfoList {
+            vm_num: 0,
+            info_list: [VMInfo::EMPTY; VM_NUM_MAX],
+        },
+        _pad: [0; VM_PAGE_SIZE - mem::size_of::<VMInfoList>()],
+    });
+    // SAFETY: the module fills one page with a `VMInfoList`.
+    match Shyper::open().and_then(|dev| unsafe { dev.ioctl_ref(0x0100, &mut *buf) }) {
+        Ok(()) => display_vm_list_info(&buf.list),
+        Err(err) => error!("err: ioctl fail: {}", err),
     }
-    display_vm_list_info(vm_info_list);
 }
 
-fn display_vm_list_info(vm_info_list: VMInfoList) {
-    let vm_num = vm_info_list.vm_num;
+fn display_vm_list_info(vm_info_list: &VMInfoList) {
+    let vm_num = vm_info_list.vm_num.min(VM_NUM_MAX);
     for i in 0..vm_num {
         let info = &vm_info_list.info_list[i];
         println!("----------vm[{}]----------", i);
