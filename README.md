@@ -48,7 +48,8 @@ Leave QEMU with `Ctrl-A`, `X`.
 
 | Platform | Status |
 |----------|--------|
-| QEMU `virt`, AArch64 (GICv2/GICv3) | runs: MVM and guest VMs |
+| QEMU `virt`, AArch64, GICv2 | runs: MVM and guest VMs |
+| QEMU `virt`, AArch64, GICv3 (`--features qemu,gicv3`) | builds and passes the checks |
 | NVIDIA Jetson TX2, Raspberry Pi 4, Firefly ROC-RK3588S-PC | build and pass the checks (not run on hardware in this project) |
 | QEMU `virt`, RISC-V 64 (PLIC/AIA) | builds and passes the checks |
 

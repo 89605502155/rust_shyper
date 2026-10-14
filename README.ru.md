@@ -48,7 +48,8 @@ cargo run --release      # собрать и загрузить гипервиз
 
 | Платформа | Состояние |
 |-----------|-----------|
-| QEMU `virt`, AArch64 (GICv2/GICv3) | работает: MVM и гостевые ВМ |
+| QEMU `virt`, AArch64, GICv2 | работает: MVM и гостевые ВМ |
+| QEMU `virt`, AArch64, GICv3 (`--features qemu,gicv3`) | собирается и проходит проверки |
 | NVIDIA Jetson TX2, Raspberry Pi 4, Firefly ROC-RK3588S-PC | собираются и проходят проверки (на железе в рамках проекта не запускались) |
 | QEMU `virt`, RISC-V 64 (PLIC/AIA) | собирается и проходит проверки |
 
