@@ -41,6 +41,7 @@ cargo run --release      # собрать и загрузить гипервиз
 - [Руководство по эксплуатации (русский)](doc/ru/guide.md): сборка, запуск,
   гостевые ВМ, конфигурация, CLI, проверки, решение проблем
 - [Operations guide (English)](doc/en/guide.md)
+- [Архитектурная модель](doc/architecture/README.md), восстановлена и проверена `archi`
 - [Документация Rust-Shyper](doc/upstream/README.md), сохранена из апстрима
 
 ## Платформы

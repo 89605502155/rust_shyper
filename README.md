@@ -41,6 +41,7 @@ Leave QEMU with `Ctrl-A`, `X`.
 - [Operations guide (English)](doc/en/guide.md): building, running, guest
   VMs, configuration, CLI, checks, troubleshooting
 - [Руководство по эксплуатации (русский)](doc/ru/guide.md)
+- [Architecture model](doc/architecture/README.md), recovered and checked with `archi`
 - [Rust-Shyper documentation](doc/upstream/README.md), kept from upstream
 
 ## Platforms
