@@ -30,7 +30,7 @@ pub const CONTEXT_GPR_NUM: usize = 31;
 #[cfg(target_arch = "riscv64")]
 // Including x0-x31，totally 32 registers
 pub const CONTEXT_GPR_NUM: usize = 32;
-pub const CPU_STACK_OFFSET: usize = offset_of!(Cpu, stack);
+pub const CPU_STACK_OFFSET: usize = core::mem::offset_of!(Cpu, stack);
 
 #[derive(Copy, Clone, Debug, Eq)]
 /// CPU state Enum

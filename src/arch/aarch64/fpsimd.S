@@ -1,3 +1,8 @@
+// The hypervisor itself is built without FP/SIMD, but it has to save and
+// restore the guest FP/SIMD context here.
+.arch_extension fp
+.arch_extension simd
+
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * FP/SIMD state saving and restoring macros

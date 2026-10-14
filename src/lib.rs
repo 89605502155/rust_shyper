@@ -25,18 +25,8 @@
 
 #![no_std]
 #![no_main]
-#![feature(core_intrinsics)]
-#![feature(alloc_error_handler)]
-#![feature(extract_if)]
-#![feature(inline_const)]
-#![feature(naked_functions)]
-#![feature(stdsimd)]
-// use hlv.w instr
-#![cfg_attr(target_arch = "riscv64", feature(riscv_ext_intrinsics))]
-#![feature(asm_const)]
-#![feature(error_in_core)]
-#![feature(slice_group_by)]
-#![feature(c_str_literals)]
+// register_structs! for the SMMU register block needs a deeper const eval.
+#![recursion_limit = "256"]
 #![allow(unused_doc_comments)]
 #![allow(special_module_name)]
 #![allow(clippy::enum_variant_names)]
@@ -52,8 +42,6 @@ extern crate alloc;
 extern crate fdt;
 #[macro_use]
 extern crate log;
-#[macro_use]
-extern crate memoffset;
 
 use device::init_vm0_dtb;
 use kernel::{cpu_init, interrupt_init, mem_init, timer_init};

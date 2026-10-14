@@ -68,7 +68,7 @@ impl IntoIterator for IntervalExcluder {
         let mut inner = self.inner;
         inner.sort_unstable();
         let inner = inner
-            .group_by(|a, b| a.0 == b.0)
+            .chunk_by(|a, b| a.0 == b.0)
             .map(|a| (a[0].0, a.iter().map(|t| t.1).sum()))
             .collect::<Vec<_>>()
             .into_iter();

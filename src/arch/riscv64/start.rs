@@ -53,11 +53,11 @@ extern "C" {
     pub fn exception_entry();
 }
 
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
 pub unsafe extern "C" fn _start() -> ! {
-    asm!(
+    core::arch::naked_asm!(
         r#"
         // Mask all interrupts
         csrw sie, zero
@@ -88,7 +88,6 @@ pub unsafe extern "C" fn _start() -> ! {
         boot_stack = sym BOOT_STACK,
         clear_bss = sym clear_bss,
         boot_core_init = sym boot_core_init,
-        options(noreturn)
     );
 }
 
@@ -283,10 +282,10 @@ pub fn arch_boot_other_cores() {
     }
 }
 
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 pub unsafe extern "C" fn _secondary_start() -> ! {
-    asm!(
+    core::arch::naked_asm!(
         r#"
         // Mask all interrupts
         csrw sie, zero
@@ -314,7 +313,6 @@ pub unsafe extern "C" fn _secondary_start() -> ! {
         SSTATUS = const (SSTATUS_FS | SSTATUS_VS),
         boot_stack = sym BOOT_STACK,
         secondary_core_init = sym secondary_core_init,
-        options(noreturn)
     );
 }
 

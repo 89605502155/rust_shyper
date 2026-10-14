@@ -63,8 +63,3 @@ fn heap_rescue(heap: &mut Heap<32>, layout: &core::alloc::Layout) {
         )
     }
 }
-
-#[alloc_error_handler]
-fn alloc_error_handler(layout: core::alloc::Layout) -> ! {
-    panic!("Out Of Memory: Heap allocation error, layout = {:x?}", layout);
-}

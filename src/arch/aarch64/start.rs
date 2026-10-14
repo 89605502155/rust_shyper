@@ -27,12 +27,12 @@ extern "C" {
     fn vectors();
 }
 
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 #[link_section = ".text.boot"]
 /// The entry point of the kernel.
 pub unsafe extern "C" fn _start() -> ! {
-    asm!(
+    core::arch::naked_asm!(
         r#"
         // save fdt pointer to x20
         mov x20, x0
@@ -104,14 +104,13 @@ pub unsafe extern "C" fn _start() -> ! {
         clear_bss = sym clear_bss,
         init_sysregs = sym init_sysregs,
         init = sym crate::init,
-        options(noreturn)
     );
 }
 
-#[naked]
+#[unsafe(naked)]
 #[no_mangle]
 pub unsafe extern "C" fn _secondary_start() -> ! {
-    asm!(
+    core::arch::naked_asm!(
         r#"
         // save core id to x20
         mov x20, x0
@@ -173,7 +172,6 @@ pub unsafe extern "C" fn _secondary_start() -> ! {
         CONTEXT_SIZE = const core::mem::size_of::<crate::arch::ContextFrame>(),
         init_sysregs = sym init_sysregs,
         secondary_init = sym crate::secondary_init,
-        options(noreturn)
     );
 }
 

@@ -12,10 +12,14 @@ FEATURES ?=
 # Toolchain
 ifeq ($(ARCH), aarch64)
 	CROSS_COMPILE := aarch64-none-elf-
+	RUST_TARGET := aarch64-unknown-none-softfloat
+	CLANG_TARGET := aarch64-unknown-none
 	TEXT_START := 0x40080000
 	VM0_IMAGE_PATH := "./image/Image_vanilla"
 else ifeq ($(ARCH), riscv64)
 	CROSS_COMPILE := riscv64-linux-gnu-
+	RUST_TARGET := riscv64imac-unknown-none-elf
+	CLANG_TARGET := riscv64-unknown-none-elf
 	TEXT_START := 0x80200000
 	VM0_IMAGE_PATH := "./image/Image-6.10-rc1"
 else
@@ -54,7 +58,7 @@ VM0_IMAGE_PATH ?= "./image/L4T"
 RELOCATE_IMAGE=librust_shyper.a
 IMAGE=rust_shyper
 
-TARGET_DIR=target/${ARCH}/${PROFILE}
+TARGET_DIR=target/${RUST_TARGET}/${PROFILE}
 
 ifeq (${ARCH}, aarch64)
 	QEMU_COMMON_OPTIONS = -machine virt,virtualization=on,gic-version=$(GIC_VERSION)\
@@ -81,11 +85,8 @@ else
 $(error bad qemu arch: $(ARCH))
 endif
 
-# Use target_cfg depending on ARCH
-TARGET_CFG := $(CURDIR)/cfg/${ARCH}.json
-
 # Combine board(tx2, qemu, pi4, ...) with previous features as cargo's features
-CARGO_FLAGS ?= -Z build-std=core,alloc -Zbuild-std-features=compiler-builtins-mem --target "${TARGET_CFG}" --no-default-features --features "${BOARD},${FEATURES}"
+CARGO_FLAGS ?= --target ${RUST_TARGET} --no-default-features --features "${BOARD},${FEATURES}"
 ifeq (${PROFILE}, release)
 CARGO_FLAGS := ${CARGO_FLAGS} --release
 endif
@@ -103,9 +104,11 @@ else ifeq ($(ARCH), riscv64)
 endif
 
 # Make bindgen (used by the fdt crate) parse headers with the cross toolchain's
-# libc instead of the host glibc headers in /usr/include.
+# libc instead of the host glibc headers in /usr/include. clang does not
+# understand rust-only triples like aarch64-unknown-none-softfloat, so the
+# target is overridden as well.
 CROSS_LIBC_INCLUDE := $(abspath $(dir $(shell $(CROSS_COMPILE)gcc -print-file-name=libc.a))../include)
-BINDGEN_EXTRA_CLANG_ARGS ?= -isystem $(CROSS_LIBC_INCLUDE)
+BINDGEN_EXTRA_CLANG_ARGS ?= --target=$(CLANG_TARGET) -isystem $(CROSS_LIBC_INCLUDE)
 
 export BOARD CROSS_COMPILE CFLAGS BINDGEN_EXTRA_CLANG_ARGS AIA_GUESTS = $(AIA_GUESTS)
 

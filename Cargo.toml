@@ -37,15 +37,12 @@ gethostname = "0.4.3"
 riscv-decode = "0.2.1"
 fdt_print = { package = "fdt", version = "0.1.5", features =["pretty-printing"] }
 vm-fdt = { git = "https://github.com/OhmR/vm-fdt" }
-fdt = { git = "https://github.com/Zera-Algorithm/libfdt-rs" }
+fdt = { path = "deps/libfdt-rs" }
 log = { version = "0.4", features = [
     "max_level_trace",
     "release_max_level_info",
 ] }
 spin = { version = "0.9.4", features = ["use_ticket_mutex"] }
-memoffset = { version = "0.8", default-features = false, features = [
-    "unstable_const",
-] }
 cfg-if = "1.0.0"
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]
@@ -59,8 +56,7 @@ sbi-rt = "0.0.3"
 riscv = { git = "https://github.com/Zera-Algorithm/riscv" }
 
 [dependencies.buddy_system_allocator]
-version = "0.8.0"
-features = ["const_fn"]
+version = "0.11"
 
 [dependencies.tock-registers]
 version = "0.8.0"
