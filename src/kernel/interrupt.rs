@@ -98,6 +98,12 @@ pub fn interrupt_vm_inject(vm: &Vm, vcpu: &Vcpu, int_id: usize) {
 }
 
 pub fn interrupt_handler(int_id: usize) -> bool {
+    #[cfg(all(
+        feature = "hang-debug",
+        target_arch = "aarch64",
+        not(feature = "gicv3")
+    ))]
+    crate::arch::hang_debug::count_irq(int_id);
     if let Some(irq_handler) = interrupt_is_reserved(int_id) {
         irq_handler();
         return true;

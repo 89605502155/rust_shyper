@@ -42,6 +42,8 @@ mod exception;
 mod gic;
 #[cfg(feature = "gicv3")]
 mod gicv3;
+#[cfg(all(feature = "hang-debug", not(feature = "gicv3")))]
+pub mod hang_debug;
 mod interface;
 mod interrupt;
 mod mmu;
