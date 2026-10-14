@@ -1,7 +1,7 @@
 # Architecture model / Архитектурная модель
 
 The architecture of trosna-shyper recovered from the code with
-[archi](https://archiplan.dev) (`archi` 0.1.12, brownfield workflow).
+`archi` 0.1.12 (archiplan, brownfield workflow).
 The spec lives in its own repository `trosna-shyper-archi` (with the
 lifecycle state of archi); this folder is a copy for reading.
 
