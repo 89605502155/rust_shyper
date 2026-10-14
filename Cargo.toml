@@ -76,7 +76,9 @@ version = "x"
 default-features = false
 
 [features]
-default = ["aia", "sbi_legacy"]
+# `cargo build` / `cargo run` default to the QEMU board; the Makefile passes
+# --no-default-features and the board explicitly.
+default = ["qemu"]
 tx2 = ["ns16550"]
 qemu = ["pl011"]
 pi4 = ["pl011"]

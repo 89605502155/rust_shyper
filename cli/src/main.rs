@@ -11,6 +11,7 @@
 mod blk;
 mod config;
 mod config_arg;
+mod console;
 mod daemon;
 mod dev;
 mod hvc;
@@ -124,6 +125,12 @@ enum VmSubCmd {
         force: bool,
     },
     Getvmid {},
+    /// attach the terminal to a guest VM console, Ctrl-] leaves it
+    Console {
+        /// console device of the guest VM in the MVM
+        #[arg(default_value = "/dev/hvc0")]
+        device: String,
+    },
 }
 
 fn parse_file(file: &str) -> Result<String, String> {
@@ -174,6 +181,11 @@ fn exec_vm_cmd(subcmd: VmSubCmd) {
         }
         VmSubCmd::Delconfig { vmid, force: _ } => config_delete_vm(vmid as u64),
         VmSubCmd::Getvmid {} => vmm_getvmid(),
+        VmSubCmd::Console { device } => {
+            if let Err(err) = console::vm_console(&device) {
+                error!("console {}: {}", device, err);
+            }
+        }
     }
 }
 

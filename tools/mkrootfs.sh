@@ -112,7 +112,7 @@ sleep 3
 # output back as input.
 stty -F /dev/hvc0 raw -echo
 /root/shyper vm boot 1
-echo "GVM started, its console is /dev/hvc0, e.g.: cat /dev/hvc0 & cat > /dev/hvc0"
+echo "GVM started. Attach to its console with: /root/shyper vm console (Ctrl-] leaves it)"
 EOF
 $SUDO chmod 0755 "$R/start-gvm.sh"
 {
