@@ -16,6 +16,7 @@ mod daemon;
 mod dev;
 mod hvc;
 mod ioctl_arg;
+mod rng;
 mod sys;
 mod util;
 mod vmm;
@@ -77,6 +78,8 @@ enum SystemSubCmd {
         #[arg(default_value = "cli-config.json")]
         config: String,
     },
+    /// seed the MVM kernel random number generator from CPU timing jitter
+    SeedRng {},
     /// load the hypervisor kernel module (shyper.ko) into the MVM kernel
     Insmod {
         /// path of the kernel module
@@ -152,6 +155,7 @@ fn exec_system_cmd(subcmd: SystemSubCmd) {
         SystemSubCmd::Shutdown { force } => sys_shutdown(force),
         SystemSubCmd::Update { image } => sys_update(image),
         SystemSubCmd::Insmod { module } => sys_insmod(&module),
+        SystemSubCmd::SeedRng {} => rng::sys_seed_rng(),
         SystemSubCmd::Test {} => sys_test(),
         SystemSubCmd::Daemon { config } => {
             config_daemon(config).unwrap();
