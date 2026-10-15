@@ -97,6 +97,8 @@ pub fn mvm_config_init() {
         PassthroughRegion { ipa: Platform::GICC_BASE, pa: Platform::GICV_BASE, length: 0x2000, dev_property: true },
         #[cfg(feature = "gicv3")]
         PassthroughRegion { ipa: 0x8080000, pa: 0x8080000, length: 0x20000, dev_property: true }, //pass-through gicv3-its
+        // PL031 RTC: without the time TLS (curl, dnf) rejects certificates
+        PassthroughRegion { ipa: 0x09010000, pa: 0x09010000, length: 0x1000, dev_property: true },
         // pass-througn virtio blk/net
         PassthroughRegion { ipa: 0x0a003000, pa: 0x0a003000, length: 0x1000, dev_property: true },
         // PCIe host bridge with QEMU's highmem-ecam=off,highmem-mmio=off:
@@ -106,8 +108,8 @@ pub fn mvm_config_init() {
         PassthroughRegion { ipa: 0x3eff0000, pa: 0x3eff0000, length: 0x10000, dev_property: true },
         PassthroughRegion { ipa: 0x3f000000, pa: 0x3f000000, length: 0x1000000, dev_property: true },
     ],
-    // PCIe INTA-INTD are SPI 3-6 (35-38)
-    irqs: vec![33,27, 35, 36, 37, 38, 72, 73,74,75,76,77,78,79],
+    // PL031 is SPI 2 (34), PCIe INTA-INTD are SPI 3-6 (35-38)
+    irqs: vec![33,27, 34, 35, 36, 37, 38, 72, 73,74,75,76,77,78,79],
     streams_ids: vec![]
     };
 

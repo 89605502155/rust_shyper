@@ -182,7 +182,7 @@ pub unsafe fn init_vm0_dtb(dtb: *mut fdt::myctypes::c_void) -> Result<()> {
         assert_eq!(fdt_remove_node(dtb, c"/gpio-keys".as_ptr()), 0);
         assert_eq!(fdt_remove_node(dtb, c"/pl061@9030000".as_ptr()), 0);
         fdt_keep_low_pcie(dtb);
-        assert_eq!(fdt_remove_node(dtb, c"/pl031@9010000".as_ptr()), 0);
+        // pl031@9010000 (RTC) stays: passed through, so the MVM has the time
         // pass through the only one uart on qemu-system-aarch64
         // assert_eq!(fdt_remove_node(dtb, c"/pl011@9000000".as_ptr()), 0);
         #[cfg(feature = "gicv3")]
