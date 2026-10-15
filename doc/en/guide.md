@@ -181,6 +181,37 @@ The serial console is in your terminal.
 
 **Leave QEMU** with `Ctrl-A` then `X`.
 
+### Desktop in a QEMU window
+
+```sh
+GUI=1 cargo run --release
+```
+
+opens a QEMU window. The MVM gets a framebuffer (an emulated PL111, shown
+through QEMU `ramfb`) and the USB keyboard and tablet of QEMU (passed
+through on PCIe, which therefore stays below 4 GiB:
+`highmem-ecam=off,highmem-mmio=off`). The serial console stays in the
+terminal. `QEMU_DISPLAY=sdl` selects another QEMU display.
+
+At the `[mvm ~]#` prompt, once (about 1 GB, over the QEMU network):
+
+```sh
+/root/mvm-desktop.sh install
+```
+
+It installs Xorg and Xfce with dnf. Fedora 42 has no Xorg fbdev driver any
+more and the MVM kernel has no DRM driver, so the script rebuilds the last
+Fedora package of the driver (Fedora 40) from source and removes the
+compiler afterwards. Then, each time:
+
+```sh
+/root/mvm-desktop.sh
+```
+
+starts Xfce in the window. The MVM has no udev, so the script writes
+`/etc/X11/xorg.conf.d/10-trosna.conf` with the devices it finds.
+
+
 What you see on boot:
 
 1. `Welcome to qemu trosna-shyper 0.0.1!`, the build information and the
@@ -328,6 +359,7 @@ devices and kernel command line.
 ```
 shyper system daemon [mediated.json]   start the daemon (mediated disks, image uploads)
 shyper system insmod [shyper.ko]       load the kernel module (no kmod needed)
+shyper system seed-rng                 seed the kernel RNG (the MVM init does it)
 shyper system reboot [-f]              reboot the hypervisor
 shyper system shutdown [-f]            shut the hypervisor down
 shyper system update <image>           live update (not supported by trosna-shyper yet)
@@ -466,7 +498,7 @@ Compared with upstream commit `62a2053`:
   - the MVM randomly stopped during boot under QEMU (a lost guest timer
     interrupt, see section 14).
 - **New:**
-  - `vm delconfig`, `vm console` and `system insmod` in the CLI;
+  - `vm delconfig`, `vm console`, `system insmod` and `system seed-rng` in the CLI;
   - an MVM disk with a ready guest (`tools/mkrootfs.sh`);
   - `tools/check.sh`.
 - **Clean code:** `clippy` and `rustfmt` report no warnings on all boards.

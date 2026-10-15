@@ -183,6 +183,37 @@ cargo run --release
 
 **Выход из QEMU:** `Ctrl-A`, затем `X`.
 
+### Рабочий стол в окне QEMU
+
+```sh
+GUI=1 cargo run --release
+```
+
+открывает окно QEMU. MVM получает видеопамять (эмулируемый PL111, который
+QEMU показывает через `ramfb`) и USB-клавиатуру и планшет QEMU (проброшены
+через PCIe, поэтому PCIe остаётся ниже 4 ГиБ:
+`highmem-ecam=off,highmem-mmio=off`). Последовательная консоль остаётся в
+терминале. `QEMU_DISPLAY=sdl` выбирает другой дисплей QEMU.
+
+В приглашении `[mvm ~]#` один раз (около 1 ГБ через сеть QEMU):
+
+```sh
+/root/mvm-desktop.sh install
+```
+
+Скрипт ставит Xorg и Xfce через dnf. В Fedora 42 больше нет драйвера Xorg
+fbdev, а в ядре MVM нет DRM-драйвера, поэтому скрипт пересобирает из
+исходников последний пакет драйвера из Fedora 40 и затем удаляет
+компилятор. Дальше каждый раз:
+
+```sh
+/root/mvm-desktop.sh
+```
+
+запускает Xfce в окне. В MVM нет udev, поэтому скрипт пишет
+`/etc/X11/xorg.conf.d/10-trosna.conf` с найденными устройствами.
+
+
 Что видно при загрузке:
 
 1. `Welcome to qemu trosna-shyper 0.0.1!`, информация о сборке и журнал
@@ -328,6 +359,7 @@ exec /root/shyper vm console
 ```
 shyper system daemon [mediated.json]   запустить демон (опосредованные диски, загрузка образов)
 shyper system insmod [shyper.ko]       загрузить модуль ядра (kmod не нужен)
+shyper system seed-rng                 заполнить ГСЧ ядра (делает init MVM)
 shyper system reboot [-f]              перезагрузить гипервизор
 shyper system shutdown [-f]            выключить гипервизор
 shyper system update <образ>           горячее обновление (в trosna-shyper пока не поддерживается)
@@ -469,7 +501,7 @@ trosna-shyper обходит это только для платы `qemu`: та�
   - под QEMU MVM случайно останавливалась при загрузке (терялось
     прерывание таймера гостя, см. раздел 14).
 - **Новое:**
-  - `vm delconfig`, `vm console`, `system insmod` в CLI;
+  - `vm delconfig`, `vm console`, `system insmod`, `system seed-rng` в CLI;
   - диск MVM с готовым гостем (`tools/mkrootfs.sh`);
   - `tools/check.sh`.
 - **Чистый код:** `clippy` и `rustfmt` не выдают предупреждений ни для

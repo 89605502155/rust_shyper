@@ -24,6 +24,7 @@
 ```sh
 ./tools/mkrootfs.sh      # диск MVM vm0.img: Fedora 42 (AArch64) + гостевая ВМ
 cargo run --release      # собрать и загрузить гипервизор в QEMU
+GUI=1 cargo run --release  # то же в окне QEMU с рабочим столом MVM
 ```
 
 Гипервизор запускает управляющую ВМ (MVM). В приглашении `[mvm ~]#`:
@@ -33,6 +34,8 @@ cargo run --release      # собрать и загрузить гипервиз
                                # (Enter — приглашение гостя, Ctrl-] — назад в MVM)
 /root/shyper vm list
 /root/shyper vm console        # снова подключиться к консоли гостя
+/root/mvm-desktop.sh install   # один раз, с GUI=1: Xorg и Xfce для MVM
+/root/mvm-desktop.sh           # запустить рабочий стол в окне QEMU
 ```
 
 Выход из QEMU: `Ctrl-A`, `X`.

@@ -1,5 +1,26 @@
 # Changelog / История изменений
 
+## Unreleased / Не выпущено
+
+- Desktop in a QEMU window: `GUI=1 cargo run --release`, emulated PL111
+  shown through QEMU ramfb, USB keyboard and tablet passed through on PCIe,
+  `mvm-desktop.sh` installs and starts Xfce in the MVM.
+  Рабочий стол в окне QEMU: `GUI=1 cargo run --release`, эмулируемый PL111
+  через QEMU ramfb, USB-клавиатура и планшет через PCIe, `mvm-desktop.sh`
+  ставит и запускает Xfce в MVM.
+- QEMU: the PL031 RTC is passed through to the MVM, which had no time
+  (1970), so TLS rejected every certificate.
+  QEMU: RTC PL031 проброшен в MVM — без часов (1970 год) TLS отвергал все
+  сертификаты.
+- CLI `system seed-rng`, run by the MVM init: the CRNG of the MVM kernel was
+  never initialized, so `getrandom()` and TLS (curl, dnf) blocked.
+  CLI `system seed-rng` в init MVM: CRNG ядра MVM не инициализировался, и
+  `getrandom()` и TLS (curl, dnf) блокировались.
+- `mkrootfs.sh`: the MVM init is `/usr/libexec/trosna-init`, linked from
+  `/sbin/init` (packages bringing systemd replace the link).
+  `mkrootfs.sh`: init MVM — `/usr/libexec/trosna-init`, `/sbin/init` —
+  ссылка на него (пакеты с systemd заменяют ссылку).
+
 ## v0.0.1 — 2026-10-14
 
 First release of trosna-shyper, based on Rust-Shyper commit `62a2053`.

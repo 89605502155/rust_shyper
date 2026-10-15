@@ -24,6 +24,7 @@ and docker:
 ```sh
 ./tools/mkrootfs.sh      # MVM disk vm0.img: Fedora 42 (AArch64) + a guest VM
 cargo run --release      # build and boot the hypervisor in QEMU
+GUI=1 cargo run --release  # the same in a QEMU window with the MVM desktop
 ```
 
 The hypervisor starts the management VM (MVM). At the `[mvm ~]#` prompt:
@@ -33,6 +34,8 @@ The hypervisor starts the management VM (MVM). At the `[mvm ~]#` prompt:
                                # (press Enter for its prompt, Ctrl-] goes back to the MVM)
 /root/shyper vm list
 /root/shyper vm console        # attach to the guest console again
+/root/mvm-desktop.sh install   # once, with GUI=1: Xorg and Xfce for the MVM
+/root/mvm-desktop.sh           # start the desktop in the QEMU window
 ```
 
 Leave QEMU with `Ctrl-A`, `X`.

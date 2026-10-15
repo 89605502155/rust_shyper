@@ -2,7 +2,8 @@
 # Build the MVM root disk (vm0.img) for `make run` on QEMU (aarch64).
 #
 # The rootfs is the official Fedora aarch64 container image. It has no
-# systemd, so a small shell script is installed as /sbin/init.
+# systemd, so a small shell script is the init (/usr/libexec/trosna-init,
+# linked from /sbin/init).
 #
 # /root of the MVM gets everything needed to run a guest VM (GVM):
 #   shyper, shyper.ko   CLI (built from cli/) and the MVM kernel module
@@ -10,6 +11,7 @@
 #   gvm/gvm.img         GVM root disk, served by the CLI as a mediated disk
 #   gvm/gvm.json        GVM configuration (tools/gvm-qemu.json)
 #   start-gvm.sh        configures and boots the GVM and attaches to its console
+#   mvm-desktop.sh      installs and starts the Xfce desktop (GUI=1 cargo run)
 #
 # Nothing is executed for arm64 on the host: the container image is only
 # exported, and the kernel module is loaded by the Rust CLI instead of kmod.
@@ -115,18 +117,24 @@ sleep 3
 exec /root/shyper vm console
 EOF
 $SUDO chmod 0755 "$R/start-gvm.sh"
+$SUDO install -m 0755 "$ROOT_DIR/tools/mvm-desktop.sh" "$R/mvm-desktop.sh"
 {
     common_init shyper-mvm mvm
     cat <<'EOF'
 /root/shyper system insmod /root/shyper.ko
+# Without it getrandom(2), and with it TLS (curl, dnf), may block for long.
+/root/shyper system seed-rng
 # The kernel configured the network (ip= on the command line); use its DNS.
 [ -s /proc/net/pnp ] && ln -sf /proc/net/pnp /etc/resolv.conf
 while true; do
     setsid -c /bin/bash -i </dev/console >/dev/console 2>&1
 done
 EOF
-} | $SUDO tee "$WORK/rootfs/usr/sbin/init" >/dev/null
-$SUDO chmod 0755 "$WORK/rootfs/usr/sbin/init"
+} | $SUDO tee "$WORK/rootfs/usr/libexec/trosna-init" >/dev/null
+$SUDO chmod 0755 "$WORK/rootfs/usr/libexec/trosna-init"
+# A link, which mvm-desktop.sh restores after packages bringing systemd
+# replace it.
+$SUDO ln -sf ../libexec/trosna-init "$WORK/rootfs/usr/sbin/init"
 
 rm -f "$OUTPUT"
 truncate -s "$SIZE" "$OUTPUT"
